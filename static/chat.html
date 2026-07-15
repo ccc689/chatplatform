@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数字方舟</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<!-- ====== 会话右键菜单 ====== -->
+<div class="context-menu" id="convContextMenu">
+  <div class="ctx-item" onclick="togglePinConv()">📌 <span id="pinLabel">置顶会话</span></div>
+  <div class="ctx-item" onclick="toggleMuteConv()">🔕 <span id="muteLabel">消息免打扰</span></div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item ctx-danger" onclick="deleteConv()">🗑 删除会话</div>
+</div>
+
+<!-- ====== 消息右键菜单（扩展版） ====== -->
+<div class="context-menu" id="msgContextMenu">
+  <div class="ctx-item" onclick="copyMsgText()">📋 复制</div>
+  <div class="ctx-item" id="msgRecallItem" onclick="recallMsg()">↩ 撤回</div>
+  <div class="ctx-item" onclick="deleteMsgLocal()">🗑 删除</div>
+  <div class="ctx-item" onclick="forwardMsg()">↗ 转发</div>
+  <div class="ctx-item" onclick="favMsg()">⭐ 收藏</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="enterMultiSelect()">☑ 多选</div>
+</div>
+
+<!-- ====== 好友资料浮窗 ====== -->
+<div class="profile-card" id="profileCard">
+  <div class="profile-avatar" id="profileAvatar">👤</div>
+  <div class="profile-name" id="profileName"></div>
+  <div class="profile-remark" id="profileRemark"></div>
+  <div class="profile-actions">
+    <button class="btn-full green" onclick="profileSendMsg()">发送消息</button>
+    <button class="btn-full light" onclick="profileEditRemark()">设置备注</button>
+    <button class="btn-full light" style="color:var(--red);" onclick="profileDeleteFriend()">删除好友</button>
+  </div>
+</div>
+
+<!-- ====== 图片预览 ====== -->
+<div class="modal-overlay" id="imagePreviewModal" onclick="closeModal('imagePreviewModal')">
+  <img id="imagePreviewImg" style="max-width:90vw;max-height:90vh;border-radius:8px;" onclick="event.stopPropagation()">
+</div>
+
+<!-- ====== 群成员弹窗 ====== -->
+<div class="modal-overlay" id="groupMembersModal">
+  <div class="modal-box"><span class="modal-back-arrow" onclick="closeModal('groupMembersModal')">←</span>
+    <h3 id="groupMembersTitle">群成员</h3><div id="groupMembersList" style="max-height:300px;overflow-y:auto;"></div>
+    <div class="modal-footer" style="margin-top:12px;"><button class="btn-cancel" onclick="closeModal('groupMembersModal')">关闭</button></div>
+  </div>
+</div>
+
+<!-- ====== 已读成员弹窗 ====== -->
+<div class="modal-overlay" id="readMembersModal">
+  <div class="modal-box"><span class="modal-back-arrow" onclick="closeModal('readMembersModal')">←</span>
+    <h3>已读成员</h3><div id="readMembersList" style="max-height:260px;overflow-y:auto;"></div>
+    <div class="modal-footer" style="margin-top:12px;"><button class="btn-cancel" onclick="closeModal('readMembersModal')">关闭</button></div>
+  </div>
+</div>
+
+<!-- ====== 转发弹窗 ====== -->
+<div class="modal-overlay" id="forwardModal">
+  <div class="modal-box"><span class="modal-back-arrow" onclick="closeModal('forwardModal')">←</span>
+    <h3>转发给</h3><div id="forwardList" style="max-height:260px;overflow-y:auto;"></div>
+    <div class="modal-footer" style="margin-top:12px;"><button class="btn-cancel" onclick="closeModal('forwardModal')">取消</button></div>
+  </div>
+</div>
+
+<!-- ====== 备注弹窗 ====== -->
+<div class="modal-overlay" id="remarkModal">
+  <div class="modal-box"><span class="modal-back-arrow" onclick="closeModal('remarkModal')">←</span>
+    <h3>设置备注</h3><input type="text" class="input-row" id="remarkInput" placeholder="输入备注名">
+    <div class="modal-footer"><button class="btn-confirm" onclick="saveRemark()">保存</button><button class="btn-cancel" onclick="closeModal('remarkModal')">取消</button></div>
+  </div>
+</div>
+
+<!-- ====== 添加好友弹窗 ====== -->
+<div class="modal-overlay" id="addFriendModal">
+  <div class="modal-box"><span class="modal-back-arrow" onclick="closeModal('addFriendModal')">←</span>
+    <h3>添加好友</h3><input type="text" class="input-row" id="friendSearchInput" placeholder="输入用户名搜索…" oninput="onSearchUser()">
+    <div class="search-result" id="searchResult" style="max-height:160px;overflow-y:auto;"></div>
+    <button class="btn-full green" onclick="addFriend()" style="margin-top:8px;">发送好友申请</button>
+    <button class="btn-full light" onclick="showApplyListInModal()" style="margin-top:6px;">查看申请列表 <span id="applyBadge"></span></button>
+    <div id="applyListInline" style="display:none;margin-top:12px;"></div>
+    <div class="modal-footer" style="margin-top:14px;"><button class="btn-cancel" onclick="closeModal('addFriendModal')">关闭</button></div>
+  </div>
+</div>
+
+<!-- ====== 创建群聊弹窗 ====== -->
+<div class="modal-overlay" id="createGroupModal">
+  <div class="modal-box"><span class="modal-back-arrow" onclick="closeModal('createGroupModal')">←</span>
+    <h3>发起群聊</h3><input type="text" class="input-row" id="newGroupName" placeholder="群名称（留空自动生成）">
+    <p style="font-size:13px;color:var(--text-sub);margin-bottom:8px;">选择群成员：</p>
+    <div class="modal-check-list" id="groupMemberCheckboxes"></div>
+    <div class="modal-footer"><button class="btn-confirm" onclick="createGroup()">确认创建</button><button class="btn-cancel" onclick="closeModal('createGroupModal')">取消</button></div>
+  </div>
+</div>
+
+<!-- ====== 个人信息弹窗 ====== -->
+<div class="modal-overlay" id="myProfileModal">
+  <div class="modal-box profile-modal-box"><span class="modal-back-arrow" onclick="closeModal('myProfileModal')">←</span>
+    <span class="profile-close" id="profileLogoutBtn">退出</span>
+    <div class="profile-avatar-wrap" onclick="document.getElementById('avatarUpload').click()">
+      <img id="profileAvatarImg" src="" style="display:none;"><span id="profileAvatarFallback" class="profile-avatar-text">😊</span>
+      <span class="online-dot profile-online-dot" id="profileOnlineDot"></span>
+      <div class="avatar-overlay">📷</div>
+      <input type="file" id="avatarUpload" accept="image/jpeg,image/png" onchange="uploadAvatar(event)" style="display:none;">
+    </div>
+    <div class="profile-field" id="nicknameField"><span class="profile-field-val" id="profileNickname">加载中</span><span class="profile-field-edit" onclick="editNickname()">✎</span></div>
+    <div class="profile-field-edit-area" id="nicknameEditArea" style="display:none;"><input type="text" class="input-row" id="nicknameInput" maxlength="12" placeholder="昵称(2-12字)" onblur="saveNickname()" onkeydown="if(event.key==='Enter')saveNickname()"></div>
+    <div class="profile-status-row"><span class="profile-status-label">状态</span><span class="profile-status-val" id="profileStatus" onclick="editStatus()">未设置</span></div>
+    <div class="profile-field-edit-area" id="statusEditArea" style="display:none;"><input type="text" class="input-row" id="statusInput" maxlength="20" placeholder="输入个性状态(最多20字)" onblur="saveStatus()" onkeydown="if(event.key==='Enter')saveStatus()"></div>
+    <button class="btn-full light" onclick="showSettings()" style="margin-top:14px;">⚙ 设置</button>
+  </div>
+</div>
+
+<!-- ====== 设置弹窗 ====== -->
+<!-- ====== 个性状态编辑弹窗 ====== -->
+<div class="modal-overlay" id="statusEditModal">
+  <div class="modal-box"><span class="modal-back-arrow" onclick="closeModal('statusEditModal')">←</span>
+    <h3>个性状态</h3>
+    <div class="status-presets" id="statusPresets"></div>
+    <div class="chat-input-row" style="margin-bottom:10px;">
+      <textarea class="msg-textarea" id="statusCustomInput" rows="1" placeholder="自定义状态（最多20字）" maxlength="20" style="min-height:36px;"></textarea>
+      <button class="tool-btn" id="statusEmojiBtn" title="插入表情" style="font-size:20px;">😊</button>
+    </div>
+    <div class="emoji-panel" id="statusEmojiPanel" style="position:static;bottom:auto;left:auto;transform:none;width:100%;box-shadow:none;"></div>
+    <div class="modal-footer">
+      <button class="btn-confirm" onclick="saveStatusFromModal()">保存</button>
+      <button class="btn-cancel" onclick="closeModal('statusEditModal')">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-box"><span class="modal-back-arrow" id="settingsBackArrow" onclick="backToProfile()">←</span>
+    <h3>设置</h3>
+    <div class="setting-row"><span>消息通知</span><label class="toggle-switch"><input type="checkbox" id="notifyToggle" checked onchange="saveSetting('notify',this.checked)"><span class="toggle-slider"></span></label></div>
+    <div class="setting-row"><span>深色模式</span><label class="toggle-switch"><input type="checkbox" id="darkToggle" onchange="toggleTheme()"><span class="toggle-slider"></span></label></div>
+    <div class="setting-row" onclick="showFavorites()" style="cursor:pointer;"><span>⭐ 我的收藏</span><span style="color:var(--text-sub);">→</span></div>
+    <div class="setting-row" onclick="showChangePwd()" style="cursor:pointer;"><span>修改密码</span><span style="color:var(--text-sub);">→</span></div>
+    <div id="changePwdArea" style="display:none;margin-top:12px;">
+      <input type="password" class="input-row" id="oldPwd" placeholder="当前密码"><input type="password" class="input-row" id="newPwd" placeholder="新密码(至少6位)"><input type="password" class="input-row" id="newPwd2" placeholder="确认新密码">
+      <div style="display:flex;gap:8px;margin-top:8px;"><button class="btn-full green" onclick="changePassword()">确认修改</button><button class="btn-full light" onclick="document.getElementById('changePwdArea').style.display='none'">取消</button></div>
+    </div>
+    <div class="modal-footer" style="margin-top:16px;"><button class="btn-cancel" onclick="closeModal('settingsModal')">关闭</button></div>
+  </div>
+</div>
+
+<!-- ====== 收藏弹窗 ====== -->
+<div class="modal-overlay" id="favoritesModal">
+  <div class="modal-box"><span class="modal-back-arrow" onclick="closeModal('favoritesModal');showSettings();">←</span>
+    <h3>⭐ 我的收藏</h3><div id="favoritesList" style="max-height:350px;overflow-y:auto;"></div>
+    <div class="modal-footer" style="margin-top:12px;"><button class="btn-cancel" onclick="closeModal('favoritesModal');showSettings();">返回</button></div>
+  </div>
+</div>
+
+<!-- ====== 底部多选操作栏 ====== -->
+<div class="multiselect-bar" id="multiselectBar">
+  <span class="selected-count" id="selectedCount">已选 0 条</span>
+  <button onclick="multiForward()">↗ 转发</button>
+  <button onclick="multiDelete()">🗑 删除</button>
+  <button onclick="multiFav()">⭐ 收藏</button>
+  <button onclick="exitMultiSelect()">✕ 取消</button>
+</div>
+
+<!-- ========== 页面主体 ========== -->
+<div class="chat-layout">
+  <div class="sidebar-left" id="sidebarLeft">
+    <div class="sidebar-top">
+      <div class="user-info" id="sidebarUserInfo" onclick="showMyProfile()" style="cursor:pointer;" title="个人信息">
+        <div class="user-avatar" id="myAvatar"><img id="sidebarAvatarImg" src="" style="display:none;width:100%;height:100%;border-radius:50%;object-fit:cover;"><span id="sidebarAvatarFallback">😊</span><span class="online-dot" id="sidebarOnlineDot"></span></div>
+        <span class="user-name" id="myUsername">加载中</span>
+        <span class="self-status" id="myStatusDisplay"></span>
+      </div><span class="logout-link" id="logoutBtn">退出</span>
+    </div>
+    <div class="sidebar-search"><div class="search-box"><span class="search-icon-inside">🔍</span><input type="text" placeholder="搜索" id="convSearchInput" oninput="onSearchConversations()" onfocus="onSearchConversations()"></div><div class="search-dropdown" id="searchDropdown"></div></div>
+    <div class="conversation-list" id="conversationList">
+      <div class="conv-skeleton"><div class="skeleton skeleton-avatar"></div><div style="flex:1"><div class="skeleton skeleton-line long"></div><div class="skeleton skeleton-line short"></div></div></div>
+      <div class="conv-skeleton"><div class="skeleton skeleton-avatar"></div><div style="flex:1"><div class="skeleton skeleton-line long"></div><div class="skeleton skeleton-line short"></div></div></div>
+      <div class="conv-skeleton"><div class="skeleton skeleton-avatar"></div><div style="flex:1"><div class="skeleton skeleton-line long"></div><div class="skeleton skeleton-line short"></div></div></div>
+    </div>
+  </div>
+
+  <div class="chat-main" id="chatMain">
+    <div class="chat-topbar"><div><div class="chat-target-name" id="chatTitle">欢迎</div><div class="chat-target-desc" id="chatSubtitle"></div></div>
+      <div class="topbar-actions" id="topbarActions">
+        <div class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</div>
+        <div class="plus-menu-wrapper" id="plusMenuWrapper"><button class="plus-btn" id="plusBtn">+</button><span class="plus-badge" id="plusBadge"></span><div class="plus-dropdown" id="plusDropdown"><div class="plus-dropdown-item" onclick="showAddFriendModal()"><span class="plus-dropdown-icon">👤</span><span>添加好友</span></div><div class="plus-dropdown-item" onclick="showCreateGroupModal()"><span class="plus-dropdown-icon">👥</span><span>发起群聊</span></div></div></div></div>
+    </div>
+    <div class="message-list" id="messageList"><div class="message-empty" id="messageEmpty"><div class="empty-icon">💬</div><div class="empty-text">选择左侧会话开始聊天</div><div class="empty-sub">好友消息、群聊消息都在这里</div></div></div>
+    <div class="chat-input-bar" id="chatInputBar" style="display:none;"><div class="chat-input-row"><button class="tool-btn" id="emojiBtn" title="表情">😊</button><textarea class="msg-textarea" id="msgInput" rows="1" placeholder="输入消息…" onkeydown="onInputKeydown(event)" oninput="autoResizeTextarea()"></textarea><input type="file" id="imageInput" style="display:none" accept="image/jpeg,image/png" onchange="onFileSelect(event,1)"><button class="tool-btn" onclick="document.getElementById('imageInput').click()" title="发送图片">🖼️</button><input type="file" id="fileInput" style="display:none" accept=".pdf,.docx,.xlsx,.pptx" onchange="onFileSelect(event,2)"><button class="tool-btn" onclick="document.getElementById('fileInput').click()" title="发送文件">📎</button><button class="send-btn" id="sendBtn" onclick="sendCurrentChatMessage()">发送</button></div><div class="emoji-panel" id="emojiPanel"></div></div>
+  </div>
+</div>
+
+<script src="/static/js/emoji.js"></script>
+<script src="/static/js/api.js"></script>
+<script src="/static/js/ws.js"></script>
+<script src="/static/js/ui.js"></script>
+</body>
+</html>

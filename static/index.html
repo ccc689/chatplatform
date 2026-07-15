@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数字方舟 — 登录</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-card">
+      <!-- Logo -->
+      <div class="auth-logo">
+        <span class="logo-icon"></span>
+        <h3>数字方舟</h3>
+      </div>
+
+      <!-- Tab -->
+      <div class="auth-tabs" id="authTabs">
+        <div class="tab-indicator" id="tabIndicator"></div>
+        <div class="auth-tab active" onclick="switchTab('login')">登录</div>
+        <div class="auth-tab" onclick="switchTab('register')">注册</div>
+      </div>
+
+      <!-- 登录表单 -->
+      <form id="loginForm" class="auth-form" onsubmit="return handleLogin(event)">
+        <div class="input-wrapper">
+          <input type="text" id="loginUser" placeholder="请输入用户名" required autocomplete="username"
+            oninput="toggleClear('loginUser','loginClear')">
+          <span class="input-clear" id="loginClear" onclick="clearInput('loginUser','loginClear')">✕</span>
+        </div>
+        <div class="input-wrapper">
+          <input type="password" id="loginPass" placeholder="请输入密码" required autocomplete="current-password">
+          <span class="input-pwd-toggle" id="loginPwdToggle" onclick="togglePwd('loginPass','loginPwdToggle')">🙈</span>
+        </div>
+        <button type="submit" class="btn-primary">登录</button>
+      </form>
+
+      <!-- 注册表单 -->
+      <form id="registerForm" class="auth-form" style="display:none" onsubmit="return handleRegister(event)">
+        <div class="input-wrapper">
+          <input type="text" id="regUser" placeholder="请输入用户名" required autocomplete="username"
+            oninput="toggleClear('regUser','regClear')">
+          <span class="input-clear" id="regClear" onclick="clearInput('regUser','regClear')">✕</span>
+        </div>
+        <div class="input-wrapper">
+          <input type="password" id="regPass" placeholder="请设置密码（至少6位）" required
+            oninput="checkPwStrength(); toggleClear('regPass','regPassClear')">
+          <span class="input-clear" id="regPassClear" onclick="clearInput('regPass','regPassClear')">✕</span>
+          <span class="input-pwd-toggle" id="regPwdToggle" onclick="togglePwd('regPass','regPwdToggle')">🙈</span>
+        </div>
+        <div class="pw-strength" id="pwStrength">
+          <span class="bar" id="bar1"></span><span class="bar" id="bar2"></span><span class="bar" id="bar3"></span>
+        </div>
+        <div class="input-wrapper">
+          <input type="password" id="regPass2" placeholder="请再次输入密码" required
+            oninput="checkPwMatch()">
+          <span class="input-pwd-toggle" id="regPwdToggle2" onclick="togglePwd('regPass2','regPwdToggle2')">🙈</span>
+        </div>
+        <div id="matchMsg"></div>
+        <button type="submit" class="btn-primary">注册</button>
+      </form>
+
+      <div id="authMsg" class="auth-msg"></div>
+      <div class="auth-extra" id="authExtra">还没有账号？<a onclick="switchTab('register')">去注册</a></div>
+    </div>
+
+    <!-- 密码错误弹窗 -->
+    <div class="modal-overlay" id="pwdErrorModal">
+      <div class="modal-box" style="width:320px;text-align:center;">
+        <p style="font-size:15px;color:#333;margin:8px 0 20px;">用户名或密码错误，请重新输入</p>
+        <button class="btn-full green" onclick="closePwdError()">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/api.js"></script>
+  <script>
+    if (isLoggedIn()) { window.location.href = "/static/chat.html"; }
+
+    // ====== Tab 滑动指示器 ======
+    function switchTab(tab) {
+      var tabs = document.querySelectorAll('.auth-tab');
+      tabs.forEach(function(t) { t.classList.remove('active'); });
+      document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+      document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+      document.getElementById('authMsg').textContent = '';
+      document.getElementById('matchMsg').innerHTML = '';
+      document.getElementById('authExtra').innerHTML =
+        tab === 'login'
+          ? '还没有账号？<a onclick="switchTab(\'register\')">去注册</a>'
+          : '已有账号？<a onclick="switchTab(\'login\')">去登录</a>';
+      tabs[tab === 'login' ? 0 : 1].classList.add('active');
+      var ind = document.getElementById('tabIndicator');
+      var t = tab === 'login' ? tabs[0] : tabs[1];
+      ind.style.left = t.offsetLeft + 'px';
+      ind.style.width = t.offsetWidth + 'px';
+    }
+
+    // ====== 输入框清除按钮 ======
+    function toggleClear(inputId, clearId) {
+      var v = document.getElementById(inputId).value;
+      document.getElementById(clearId).classList.toggle('visible', v.length > 0);
+    }
+    function clearInput(inputId, clearId) {
+      document.getElementById(inputId).value = '';
+      document.getElementById(clearId).classList.remove('visible');
+      document.getElementById(inputId).focus();
+      if (inputId === 'regPass') { checkPwStrength(); }
+    }
+
+    // ====== 密码显示/隐藏（🙈 闭眼 / 🐵 睁眼） ======
+    function togglePwd(inputId, toggleId) {
+      var inp = document.getElementById(inputId);
+      var icon = document.getElementById(toggleId);
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.textContent = '🐵';
+      } else {
+        inp.type = 'password';
+        icon.textContent = '🙈';
+      }
+    }
+
+    // ====== 密码错误弹窗 ======
+    function showPwdError() {
+      document.getElementById('pwdErrorModal').classList.add('visible');
+    }
+    function closePwdError() {
+      document.getElementById('pwdErrorModal').classList.remove('visible');
+      // 仅清空密码框，保留用户名
+      document.getElementById('loginPass').value = '';
+      document.getElementById('loginPass').focus();
+    }
+    // 点击遮罩关闭
+    document.addEventListener('click', function(e) {
+      if (e.target.id === 'pwdErrorModal') closePwdError();
+    });
+
+    // ====== 密码强度 ======
+    function checkPwStrength() {
+      var pw = document.getElementById('regPass').value;
+      var b1 = document.getElementById('bar1'), b2 = document.getElementById('bar2'), b3 = document.getElementById('bar3');
+      [b1,b2,b3].forEach(function(b) { b.className = 'bar'; });
+      if (pw.length === 0) return;
+      var score = 0;
+      if (pw.length >= 6) score++;
+      if (pw.length >= 10) score++;
+      if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+      if (/\d/.test(pw)) score++;
+      if (/[^A-Za-z0-9]/.test(pw)) score++;
+      if (score <= 1) { b1.className = 'bar weak'; b2.className = 'bar weak'; }
+      else if (score <= 3) { b1.className = 'bar medium'; b2.className = 'bar medium'; }
+      else { b1.className = 'bar strong'; b2.className = 'bar strong'; b3.className = 'bar strong'; }
+    }
+
+    // ====== 确认密码匹配 ======
+    function checkPwMatch() {
+      var p1 = document.getElementById('regPass').value;
+      var p2 = document.getElementById('regPass2').value;
+      var el = document.getElementById('matchMsg');
+      if (p2.length === 0) { el.innerHTML = ''; return; }
+      if (p1 === p2) el.innerHTML = '<div class="match-ok">✓ 密码一致</div>';
+      else el.innerHTML = '<div class="match-err">✗ 密码不一致</div>';
+    }
+
+    // ====== 登录（修复错误处理逻辑） ======
+    async function handleLogin(e) {
+      e.preventDefault();
+      var u = document.getElementById('loginUser').value.trim();
+      var p = document.getElementById('loginPass').value;
+
+      // 直接 fetch，绕过 apiPost 的全局 401 处理
+      var resp = await fetch("/user/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u, password: p })
+      });
+      var data = await resp.json();
+
+      if (data.code === 200 && data.access_token) {
+        setToken(data.access_token);
+        localStorage.setItem("my_username", u);
+        window.location.href = "/static/chat.html";
+      } else {
+        // 区分密码错误 vs 其他错误
+        var detail = (data.detail || "").toLowerCase();
+        if (resp.status === 401 && (detail.indexOf("密码") !== -1 || detail.indexOf("用户") !== -1 || detail.indexOf("账号") !== -1)) {
+          showPwdError();
+        } else if (resp.status === 401 && (detail.indexOf("token") !== -1 || detail.indexOf("过期") !== -1)) {
+          alert("登录已过期，请重新登录");
+          logout();
+        } else {
+          document.getElementById('authMsg').textContent = data.detail || data.msg || '登录失败';
+        }
+      }
+    }
+
+    // ====== 注册 ======
+    async function handleRegister(e) {
+      e.preventDefault();
+      var u = document.getElementById('regUser').value.trim();
+      var p1 = document.getElementById('regPass').value;
+      var p2 = document.getElementById('regPass2').value;
+      if (p1 !== p2) { document.getElementById('authMsg').textContent = '两次密码不一致'; return; }
+      if (p1.length < 6) { document.getElementById('authMsg').textContent = '密码至少6位'; return; }
+      var res = await UserAPI.register(u, p1);
+      if (res.code === 200) {
+        document.getElementById('authMsg').style.color = 'var(--green)';
+        document.getElementById('authMsg').textContent = '注册成功！即将跳转登录…';
+        setTimeout(function() { switchTab('login'); }, 1200);
+      } else {
+        document.getElementById('authMsg').textContent = res.detail || res.msg || '注册失败';
+      }
+    }
+  </script>
+</body>
+</html>
