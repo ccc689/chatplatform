@@ -4,21 +4,25 @@
 
 var API_BASE = "";
 
-/* ---------- Token ---------- */
+/* ---------- Token (sessionStorage 防止多账号串数据) ---------- */
 function getToken() {
-  return localStorage.getItem("access_token") || "";
+  return sessionStorage.getItem("access_token") || "";
 }
 function setToken(t) {
-  localStorage.setItem("access_token", t);
+  sessionStorage.setItem("access_token", t);
 }
 function clearToken() {
-  localStorage.removeItem("access_token");
+  sessionStorage.removeItem("access_token");
 }
 function isLoggedIn() {
   return !!getToken();
 }
 function logout() {
   clearToken();
+  sessionStorage.removeItem("my_username");
+  sessionStorage.removeItem("my_avatar");
+  sessionStorage.removeItem("my_status");
+  sessionStorage.removeItem("my_user_id");
   window.location.href = "/static/login.html";
 }
 

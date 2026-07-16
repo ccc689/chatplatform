@@ -407,7 +407,7 @@
     const data = await resp.json();
     if (data.code === 200 && data.access_token) {
       setToken(data.access_token);
-      localStorage.setItem("my_username", u);
+      sessionStorage.setItem("my_username", u);
       window.location.href = "/static/chat.html";
     } else {
       const detail = (data.detail || "").toLowerCase();

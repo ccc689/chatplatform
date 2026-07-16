@@ -292,14 +292,12 @@
       </div>
       <div class="chat-input-tools">
         <button class="tool-btn" id="emojiBtn" title="表情">😊</button>
+        <input type="file" id="attachInput" style="display:none" accept="image/jpeg,image/png,.pdf,.docx,.xlsx,.pptx" onchange="onAttachSelect(event)">
         <input type="file" id="imageInput" style="display:none" accept="image/jpeg,image/png" onchange="onFileSelect(event,1)">
         <input type="file" id="fileInput" style="display:none" accept=".pdf,.docx,.xlsx,.pptx" onchange="onFileSelect(event,2)">
-        <button class="tool-btn" id="attachBtn" title="发送图片或文件" onclick="showAttachOptions()">📎</button>
-        <div class="attach-dropdown" id="attachDropdown">
-          <div class="attach-dropdown-item" onclick="document.getElementById('imageInput').click();document.getElementById('attachDropdown').classList.remove('visible');">🖼️ 发送图片</div>
-          <div class="attach-dropdown-item" onclick="document.getElementById('fileInput').click();document.getElementById('attachDropdown').classList.remove('visible');">📁 发送文件</div>
-        </div>
+        <button class="tool-btn" id="attachBtn" title="发送图片或文件" onclick="document.getElementById('attachInput').click()">📎</button>
       </div>
+      <input type="file" id="customEmojiInput" style="display:none" accept="image/jpeg,image/png" onchange="onCustomEmojiSelect(event)">
       <div class="emoji-panel" id="emojiPanel"></div>
     </div>
   </div>

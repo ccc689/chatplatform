@@ -103,3 +103,26 @@ def update_profile(body: ProfileUpdate, db: Session = Depends(get_db)):
             "status_message": user.status_message or ""
         }
     }
+
+
+# ==================== 修改密码 ====================
+
+class ChangePasswordRequest(BaseModel):
+    token: str
+    old_password: str
+    new_password: str
+
+@router.post("/change_password")
+def change_password(body: ChangePasswordRequest, db: Session = Depends(get_db)):
+    """修改登录密码"""
+    uid = get_current_user_from_token(body.token)
+    user = db.query(User).filter(User.id == uid).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    if not verify_password(body.old_password, user.password):
+        raise HTTPException(status_code=400, detail="当前密码错误")
+    if len(body.new_password) < 6:
+        raise HTTPException(status_code=400, detail="新密码至少6位")
+    user.password = hash_password(body.new_password)
+    db.commit()
+    return {"code": 200, "msg": "密码修改成功"}

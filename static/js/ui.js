@@ -71,32 +71,30 @@ function applyTheme(){var t=getTheme();document.documentElement.setAttribute("da
 /* ==================== 初始化 ==================== */
 window.addEventListener("DOMContentLoaded",function(){
   if(!isLoggedIn()){window.location.href="/static/login.html";return;}
-  myUsername=localStorage.getItem("my_username")||"我";myAvatar=localStorage.getItem("my_avatar")||"";myStatus=localStorage.getItem("my_status")||"";myUserId=parseInt(localStorage.getItem("my_user_id"))||0;
+  myUsername=sessionStorage.getItem("my_username")||"我";myAvatar=sessionStorage.getItem("my_avatar")||"";myStatus=sessionStorage.getItem("my_status")||"";myUserId=parseInt(sessionStorage.getItem("my_user_id"))||0;
   $("myUsername").textContent=myUsername;applyTheme();refreshMyAvatar();
   chatSocket.onMsg=handleWsMessage;chatSocket.connect();
-  buildEmojiPanel();bindPlusMenu();bindGlobalClicks();bindLogout();
-  try { loadMyProfile(); } catch(e) { console.error("loadMyProfile error:", e); }
-  try { loadConversations(); } catch(e) { console.error("loadConversations error:", e); }
-  try { loadFriends(); } catch(e) { console.error("loadFriends error:", e); }
-  try { loadGroups(); } catch(e) { console.error("loadGroups error:", e); }
-  loadApplyBadge();updateMyStatusDisplay();
+  safeRun(buildEmojiPanel);safeRun(bindPlusMenu);safeRun(bindGlobalClicks);safeRun(bindLogout);
+  safeRun(loadMyProfile);safeRun(loadConversations);safeRun(loadFriends);safeRun(loadGroups);safeRun(loadApplyBadge);safeRun(updateMyStatusDisplay);
 });
+function safeRun(fn){try{fn();}catch(e){console.error("Init error:",e);}}
 function bindLogout(){$("logoutBtn").onclick=function(){$("logoutConfirmModal").classList.add("visible");};}
 function confirmLogout(){closeModal("logoutConfirmModal");logout();}
 function bindPlusMenu(){var b=$("plusBtn"),d=$("plusDropdown");if(!b||!d)return;b.onclick=function(e){e.stopPropagation();d.classList.toggle("visible");};}
 function bindGlobalClicks(){
-  document.addEventListener("click",function(e){var t=e.target,w=$("plusMenuWrapper");if(w&&!w.contains(t)){var d=$("plusDropdown");if(d)d.classList.remove("visible");}[$("convContextMenu"),$("msgContextMenu")].forEach(function(m){if(m&&!m.contains(t))m.classList.remove("visible");});var sd=$("searchDropdown"),si=$("convSearchInput");if(sd&&!sd.contains(t)&&si&&t!==si)sd.classList.remove("visible");var ad=$("attachDropdown");if(ad&&!ad.contains(t)&&t.id!=="attachBtn")ad.classList.remove("visible");});
+  document.addEventListener("click",function(e){var t=e.target,w=$("plusMenuWrapper");if(w&&!w.contains(t)){var d=$("plusDropdown");if(d)d.classList.remove("visible");}[$("convContextMenu"),$("msgContextMenu")].forEach(function(m){if(m&&!m.contains(t))m.classList.remove("visible");});var sd=$("searchDropdown"),si=$("convSearchInput");if(sd&&!sd.contains(t)&&si&&t!==si)sd.classList.remove("visible");});
   document.addEventListener("click",function(e){if(e.target.classList.contains("modal-overlay"))e.target.classList.remove("visible");});
 }
-function showAttachOptions(){var d=$("attachDropdown");if(d){d.classList.toggle("visible");}}
+async function onAttachSelect(e){var f=e.target.files[0];if(!f)return;e.target.value="";if(f.type.match(/^image\/(jpeg|png)$/)){onFileSelectInternal(f,1);}else{onFileSelectInternal(f,2);}}
+async function onFileSelectInternal(f,mt){if(mt===1){if(!f.type.match(/^image\/(jpeg|png)$/)){alert("仅支持JPG/PNG");return;}if(f.size>10*1024*1024){alert("最大10MB");return;}}else{var a=[".pdf",".docx",".xlsx",".pptx"],ex="."+f.name.split(".").pop().toLowerCase();if(a.indexOf(ex)===-1){alert("仅支持PDF/Word/Excel/PPT");return;}if(f.size>50*1024*1024){alert("最大50MB");return;}}var res=await apiUpload(f);if(res.code!==200){alert(res.detail||"失败");return;}if(!currentChat)return;if(currentChat.type==="private")chatSocket.sendPrivate(currentChat.name,res.file_url,mt);else chatSocket.sendGroup(currentChat.target_id,res.file_url,mt);appendBubble("me",myUsername,res.file_url,mt,formatTime(new Date()),null);}
 
 /* ==================== 个人信息 ==================== */
-async function loadMyProfile(){try{var r=await fetch("/user/profile?token="+getToken()),d=await r.json();if(d.code===200){if(d.data.user_id){myUserId=d.data.user_id;localStorage.setItem("my_user_id",myUserId);}if(d.data.avatar){myAvatar=d.data.avatar;localStorage.setItem("my_avatar",myAvatar);}if(d.data.username){myUsername=d.data.username;localStorage.setItem("my_username",myUsername);$("myUsername").textContent=myUsername;}if(d.data.status_message!==undefined){myStatus=d.data.status_message;localStorage.setItem("my_status",myStatus);}refreshMyAvatar();}}catch(e){}}
+async function loadMyProfile(){try{var r=await fetch("/user/profile?token="+getToken()),d=await r.json();if(d.code===200){if(d.data.user_id){myUserId=d.data.user_id;sessionStorage.setItem("my_user_id",myUserId);}if(d.data.avatar){myAvatar=d.data.avatar;sessionStorage.setItem("my_avatar",myAvatar);}if(d.data.username){myUsername=d.data.username;sessionStorage.setItem("my_username",myUsername);$("myUsername").textContent=myUsername;}if(d.data.status_message!==undefined){myStatus=d.data.status_message;sessionStorage.setItem("my_status",myStatus);}refreshMyAvatar();}}catch(e){}}
 function refreshMyAvatar(){var i=$("sidebarAvatarImg"),f=$("sidebarAvatarFallback");if(myAvatar&&i){i.src=myAvatar;i.style.display="block";if(f)f.style.display="none";}else{if(i)i.style.display="none";if(f){f.style.display="flex";f.textContent=(myUsername||"?").charAt(0).toUpperCase();}}var pi=$("profileAvatarImg"),pf=$("profileAvatarFallback");if(myAvatar&&pi){pi.src=myAvatar;pi.style.display="block";if(pf)pf.style.display="none";}else{if(pi)pi.style.display="none";if(pf){pf.style.display="flex";pf.textContent=(myUsername||"?").charAt(0).toUpperCase();}}}
 function showMyProfile(){$("profileNickname").textContent=myUsername;$("profileStatus").textContent=myStatus||"未设置";refreshMyAvatar();$("nicknameEditArea").style.display="none";$("statusEditArea").style.display="none";$("myProfileModal").classList.add("visible");$("profileLogoutBtn").onclick=function(){if(confirm("确定退出？"))logout();};}
-function uploadAvatar(e){var f=e.target.files[0];if(!f)return;e.target.value="";if(!f.type.match(/^image\/(jpeg|png)$/)){alert("仅支持JPG/PNG");return;}if(f.size>5*1024*1024){alert("最大5MB");return;}var r=new FileReader();r.onload=function(ev){$("profileAvatarImg").src=ev.target.result;$("profileAvatarImg").style.display="block";$("profileAvatarFallback").style.display="none";};r.readAsDataURL(f);var fd=new FormData();fd.append("token",getToken());fd.append("file",f);fetch("/upload/file",{method:"POST",body:fd}).then(function(r){return r.json();}).then(async function(d){if(d.code===200){myAvatar=d.file_url;localStorage.setItem("my_avatar",myAvatar);await fetch("/user/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:getToken(),avatar:myAvatar})});refreshMyAvatar();}else alert("上传失败");});}
+function uploadAvatar(e){var f=e.target.files[0];if(!f)return;e.target.value="";if(!f.type.match(/^image\/(jpeg|png)$/)){alert("仅支持JPG/PNG");return;}if(f.size>5*1024*1024){alert("最大5MB");return;}var r=new FileReader();r.onload=function(ev){$("profileAvatarImg").src=ev.target.result;$("profileAvatarImg").style.display="block";$("profileAvatarFallback").style.display="none";};r.readAsDataURL(f);var fd=new FormData();fd.append("token",getToken());fd.append("file",f);fetch("/upload/file",{method:"POST",body:fd}).then(function(r){return r.json();}).then(async function(d){if(d.code===200){myAvatar=d.file_url;sessionStorage.setItem("my_avatar",myAvatar);await fetch("/user/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:getToken(),avatar:myAvatar})});refreshMyAvatar();}else alert("上传失败");});}
 function editNickname(){$("nicknameEditArea").style.display="block";$("nicknameInput").value=myUsername;$("nicknameInput").focus();}
-async function saveNickname(){var v=$("nicknameInput").value.trim();$("nicknameEditArea").style.display="none";if(!v||v===myUsername||v.length<2)return;if(v.length>12){alert("最多12字");return;}var r=await fetch("/user/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:getToken(),nickname:v})}),d=await r.json();if(d.code===200){myUsername=d.data.username;localStorage.setItem("my_username",myUsername);$("myUsername").textContent=myUsername;$("profileNickname").textContent=myUsername;refreshMyAvatar();loadConversations();}}
+async function saveNickname(){var v=$("nicknameInput").value.trim();$("nicknameEditArea").style.display="none";if(!v||v===myUsername||v.length<2)return;if(v.length>12){alert("最多12字");return;}var r=await fetch("/user/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:getToken(),nickname:v})}),d=await r.json();if(d.code===200){myUsername=d.data.username;sessionStorage.setItem("my_username",myUsername);$("myUsername").textContent=myUsername;$("profileNickname").textContent=myUsername;refreshMyAvatar();loadConversations();}}
 function editStatus(){
   $("myProfileModal").classList.remove("visible");
   showStatusEditModal();
@@ -163,7 +161,7 @@ async function saveStatusFromModal(){
   var d = await r.json();
   if(d.code===200){
     myStatus = d.data.status_message || "";
-    localStorage.setItem("my_status", myStatus);
+    sessionStorage.setItem("my_status", myStatus);
     $("profileStatus").textContent = myStatus || "未设置";
     updateMyStatusDisplay();
     loadConversations(); // 刷新会话列表中的状态
@@ -177,7 +175,7 @@ function backToProfile(){closeModal("settingsModal");showMyProfile();}
 function showFavorites(){closeModal("settingsModal");renderFavorites();$("favoritesModal").classList.add("visible");}
 function showChangePwd(){$("changePwdArea").style.display="block";}
 function saveSetting(k,v){localStorage.setItem("setting_"+k,v?"1":"0");}
-async function changePassword(){var o=$("oldPwd").value,n1=$("newPwd").value,n2=$("newPwd2").value;if(!o||!n1){alert("请填写完整");return;}if(n1.length<6){alert("至少6位");return;}if(n1!==n2){alert("不一致");return;}alert("需后端接口支持");}
+async function changePassword(){var o=$("oldPwd").value,n1=$("newPwd").value,n2=$("newPwd2").value;if(!o||!n1){alert("请填写完整");return;}if(n1.length<6){alert("新密码至少6位");return;}if(n1!==n2){alert("两次密码不一致");return;}var r=await apiPost("/user/change_password",{token:getToken(),old_password:o,new_password:n1});if(r.code===200){alert("密码修改成功");$("changePwdArea").style.display="none";$("oldPwd").value="";$("newPwd").value="";$("newPwd2").value="";}else{alert(r.detail||"修改失败");}}
 
 /* ==================== 收藏 ==================== */
 function favMsg(){if(!contextMsgData||!contextMsgData.content)return;$("msgContextMenu").classList.remove("visible");var favs=getFavs();favs.push({content:contextMsgData.content, time:contextMsgData.time, sender:contextMsgData.sender, msgType:0, addedAt:new Date().toISOString()});setFavs(favs);}
@@ -769,17 +767,20 @@ async function leaveCurrentGroup(){if(!currentChat||currentChat.type!=="group")r
 function resetChatView(){$("chatTitle").textContent="欢迎";$("chatSubtitle").textContent="";$("messageList").innerHTML='<div class="message-empty" id="messageEmpty"><div class="empty-icon">💬</div><div class="empty-text">选择左侧会话开始聊天</div><div class="empty-sub">好友消息、群聊消息都在这里<br>开启你的数字方舟之旅 ✨</div></div>';$("messageEmpty").style.display="block";$("chatInputBar").style.display="none";$("topbarActions").innerHTML='<div class="theme-toggle" id="themeToggle" onclick="toggleTheme()">'+(getTheme()==="dark"?"☀️":"🌙")+'</div><div class="plus-menu-wrapper" id="plusMenuWrapper"><button class="plus-btn" id="plusBtn">+</button><span class="plus-badge" id="plusBadge"></span><div class="plus-dropdown" id="plusDropdown"><div class="plus-dropdown-item" onclick="showAddFriendModal()"><span class="plus-dropdown-icon">👤</span><span>添加好友</span></div><div class="plus-dropdown-item" onclick="showCreateGroupModal()"><span class="plus-dropdown-icon">👥</span><span>发起群聊</span></div></div></div>';bindPlusMenu();loadApplyBadge();}
 
 /* ==================== 表情 ==================== */
-function buildEmojiPanel(){try{var p=$("emojiPanel");if(!p)return;p.innerHTML="";
+function buildEmojiPanel(){var p=$("emojiPanel");if(!p)return;p.innerHTML="";
   // "+" custom emoji button at position 1
-  var addBtn=document.createElement("span");addBtn.className="emoji-item emoji-add-btn";addBtn.textContent="+";addBtn.title="添加自定义表情";addBtn.onclick=function(e){e.stopPropagation();addCustomEmoji();};p.appendChild(addBtn);
+  var addBtn=document.createElement("span");addBtn.className="emoji-item emoji-add-btn";addBtn.textContent="+";addBtn.title="上传自定义表情";addBtn.onclick=function(e){e.stopPropagation();document.getElementById("customEmojiInput").click();};p.appendChild(addBtn);
   // All system emojis
   var list=buildEmojiList();var added=new Set();
-  list.forEach(function(item){if(added.has(item.emoji))return;added.add(item.emoji);
-    var s=document.createElement("span");s.className="emoji-item";s.textContent=item.emoji;s.title=item.mark;
-    s.onclick=function(){$("msgInput").value+=item.mark;p.classList.remove("visible");};p.appendChild(s);
-  });
-}catch(e){console.error("buildEmojiPanel error:",e);}}
-function addCustomEmoji(){var emoji=prompt("请输入表情符号（可直接粘贴 emoji）：");if(!emoji||!emoji.trim())return;emoji=emoji.trim();var mark="[自定义]";var custom=getCustomEmojis();custom.push({mark:mark,emoji:emoji});saveCustomEmojis(custom);buildEmojiPanel();}
+  for(var i=0;i<list.length;i++){var item=list[i];if(added.has(item.mark))continue;added.add(item.mark);
+    var s=document.createElement("span");s.className="emoji-item";
+    if(item.custom){var img=document.createElement("img");img.src=item.emoji;img.style.width="28px";img.style.height="28px";img.style.objectFit="cover";img.style.borderRadius="4px";s.appendChild(img);s.title="自定义表情";}
+    else {s.textContent=item.emoji;s.title=item.mark;}
+    s.onclick=(function(m){return function(){$("msgInput").value+=m;p.classList.remove("visible");};})(item.mark);
+    p.appendChild(s);
+  }
+}
+async function onCustomEmojiSelect(e){var f=e.target.files[0];if(!f)return;e.target.value="";if(!f.type.match(/^image\/(jpeg|png)$/)){alert("仅支持JPG/PNG格式");return;}if(f.size>2*1024*1024){alert("表情最大2MB");return;}var res=await apiUpload(f);if(res.code!==200){alert(res.detail||"上传失败");return;}var mark="[图片表情]";var custom=getCustomEmojis();custom.push({mark:mark,emoji:res.file_url});saveCustomEmojis(custom);buildEmojiPanel();}
 document.addEventListener("click",function(e){var p=$("emojiPanel"),b=$("emojiBtn");if(!p||!b)return;if(e.target===b||b.contains(e.target)){p.classList.toggle("visible");return;}if(!p.contains(e.target))p.classList.remove("visible");});
 
 /* ==================== 弹窗 ==================== */
