@@ -281,10 +281,14 @@ def get_group_history(req: GroupHistoryReq, db: Session = Depends(get_db)):
 
     user_ids = set(msg.sender_id for msg in messages)
     user_map = _get_user_map(db, user_ids)
+    # 获取头像映射
+    users = db.query(User.id, User.avatar).filter(User.id.in_(user_ids)).all()
+    avatar_map = {u.id: u.avatar or "" for u in users}
 
     data = [{
         "sender_name": user_map.get(msg.sender_id, "未知用户"),
         "sender_id": msg.sender_id,
+        "sender_avatar": avatar_map.get(msg.sender_id, ""),
         "content": msg.content,
         "message_type": msg.message_type,
         "create_at": msg.create_at.strftime("%Y-%m-%d %H:%M:%S") if msg.create_at else ""

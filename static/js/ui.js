@@ -94,7 +94,7 @@ function refreshMyAvatar(){var i=$("sidebarAvatarImg"),f=$("sidebarAvatarFallbac
 function showMyProfile(){$("profileNickname").textContent=myUsername;$("profileStatus").textContent=myStatus||"未设置";refreshMyAvatar();$("nicknameEditArea").style.display="none";$("statusEditArea").style.display="none";$("myProfileModal").classList.add("visible");$("profileLogoutBtn").onclick=function(){if(confirm("确定退出？"))logout();};}
 function uploadAvatar(e){var f=e.target.files[0];if(!f)return;e.target.value="";if(!f.type.match(/^image\/(jpeg|png)$/)){alert("仅支持JPG/PNG");return;}if(f.size>5*1024*1024){alert("最大5MB");return;}var r=new FileReader();r.onload=function(ev){$("profileAvatarImg").src=ev.target.result;$("profileAvatarImg").style.display="block";$("profileAvatarFallback").style.display="none";};r.readAsDataURL(f);var fd=new FormData();fd.append("token",getToken());fd.append("file",f);fetch("/upload/file",{method:"POST",body:fd}).then(function(r){return r.json();}).then(async function(d){if(d.code===200){myAvatar=d.file_url;sessionStorage.setItem("my_avatar",myAvatar);await fetch("/user/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:getToken(),avatar:myAvatar})});refreshMyAvatar();}else alert("上传失败");});}
 function editNickname(){$("nicknameEditArea").style.display="block";$("nicknameInput").value=myUsername;$("nicknameInput").focus();}
-async function saveNickname(){var v=$("nicknameInput").value.trim();$("nicknameEditArea").style.display="none";if(!v||v===myUsername||v.length<2)return;if(v.length>12){alert("最多12字");return;}var r=await fetch("/user/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:getToken(),nickname:v})}),d=await r.json();if(d.code===200){myUsername=d.data.username;sessionStorage.setItem("my_username",myUsername);$("myUsername").textContent=myUsername;$("profileNickname").textContent=myUsername;refreshMyAvatar();loadConversations();}}
+async function saveNickname(){var v=$("nicknameInput").value.trim();if(!v||v===myUsername||v.length<2){$("nicknameEditArea").style.display="none";return;}if(v.length>12){alert("最多12字");return;}var r=await fetch("/user/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:getToken(),nickname:v})}),d=await r.json();if(d.code===200){myUsername=d.data.username;sessionStorage.setItem("my_username",myUsername);$("myUsername").textContent=myUsername;$("profileNickname").textContent=myUsername;refreshMyAvatar();loadConversations();$("nicknameEditArea").style.display="none";}else{alert(d.detail||"修改失败，昵称可能已被占用");}}
 function editStatus(){
   $("myProfileModal").classList.remove("visible");
   showStatusEditModal();
@@ -263,7 +263,10 @@ function renderConversations(){
   if(kw){kw=kw.toLowerCase();list=list.filter(function(c){return(c.name||"").toLowerCase().indexOf(kw)!==-1||((c.last_msg||"").toLowerCase().indexOf(kw)!==-1);});}
   c.innerHTML=list.map(function(cn){
     var k=convKey(cn.type,cn.target_id),active=currentChat&&currentChat.target_id===cn.target_id&&currentChat.type===cn.type?" active":"";
-    return'<div class="conv-item'+active+(cn._pinned?" pinned":"")+'" onclick="openConversation(\''+cn.type+'\','+cn.target_id+',\''+escapeHtml(cn.name)+'\')" oncontextmenu="onConvContext(event,\''+cn.type+'\','+cn.target_id+',\''+escapeHtml(cn.name)+'\')" data-conv-key="'+k+'"><div class="conv-avatar'+(cn.type==="group"?" group-avatar":"")+'">'+(cn.type==="group"?"👥":"👤")+'</div><div class="conv-info"><div class="conv-name">'+(cn._pinned?"📌 ":"")+escapeHtml(cn._note||cn.name)+'</div><div class="conv-preview">'+escapeHtml(cn.last_msg||"").slice(0,40)+'</div>'+(cn.status_message&&cn.type==="private"?'<div class="conv-status">'+escapeHtml(cn.status_message)+'</div>':"")+'</div><div class="conv-meta"><div class="conv-time">'+formatWechatTime(cn.last_time)+'</div>'+(cn.unread>0?'<div class="conv-badge">'+(cn.unread>9?"9+":cn.unread)+'</div>':"")+'</div>'+(cn._muted?'<span class="dnd-icon">🔕</span>':"")+'</div>';
+    var avatarUrl=cn.avatar||"",avatarHtml="";
+    if(avatarUrl){avatarHtml='<img src="'+escapeHtml(avatarUrl)+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentElement.textContent=\''+(cn.type==="group"?"👥":"👤")+'\';">';}
+    else {avatarHtml=(cn.type==="group"?"👥":"👤");}
+    return'<div class="conv-item'+active+(cn._pinned?" pinned":"")+'" onclick="openConversation(\''+cn.type+'\','+cn.target_id+',\''+escapeHtml(cn.name)+'\')" oncontextmenu="onConvContext(event,\''+cn.type+'\','+cn.target_id+',\''+escapeHtml(cn.name)+'\')" data-conv-key="'+k+'"><div class="conv-avatar'+(cn.type==="group"?" group-avatar":"")+'">'+avatarHtml+'</div><div class="conv-info"><div class="conv-name">'+(cn._pinned?"📌 ":"")+escapeHtml(cn._note||cn.name)+'</div><div class="conv-preview">'+escapeHtml(cn.last_msg||"").slice(0,40)+'</div>'+(cn.status_message&&cn.type==="private"?'<div class="conv-status">'+escapeHtml(cn.status_message)+'</div>':"")+'</div><div class="conv-meta"><div class="conv-time">'+formatWechatTime(cn.last_time)+'</div>'+(cn.unread>0?'<div class="conv-badge">'+(cn.unread>9?"9+":cn.unread)+'</div>':"")+'</div>'+(cn._muted?'<span class="dnd-icon">🔕</span>':"")+'</div>';
   }).join("");
 }
 function onSearchConversations(){
@@ -298,7 +301,7 @@ function openConversation(type,targetId,name){
   loadHistory().then(function(){loadConversations();});
 }
 async function loadHistory(){
-  if(!currentChat)return;try{var res=currentChat.type==="private"?await ChatAPI.history(currentChat.name):await GroupAPI.history(currentChat.target_id),msgs=res.data||[],list=$("messageList");list.innerHTML="";var em=$("messageEmpty");if(msgs.length===0){if(em)em.style.display="block";}else{if(em)em.style.display="none";}lastMsgDate=null;msgs.forEach(function(m){appendBubble((m.sender_name===myUsername)?"me":"other",m.sender_name,m.content,m.message_type,m.create_at,m.id);});
+  if(!currentChat)return;try{var res=currentChat.type==="private"?await ChatAPI.history(currentChat.name):await GroupAPI.history(currentChat.target_id),msgs=res.data||[],list=$("messageList");list.innerHTML="";var em=$("messageEmpty");if(msgs.length===0){if(em)em.style.display="block";}else{if(em)em.style.display="none";}lastMsgDate=null;msgs.forEach(function(m){appendBubble((m.sender_name===myUsername)?"me":"other",m.sender_name,m.content,m.message_type,m.create_at,m.id,m.sender_avatar);});
   // 已读回执：打开会话后通知发送方「我已读」
   if(currentChat.type==="private"){chatSocket._send({type:"mark_read",target_username:currentChat.name});}
   else if(currentChat.type==="group"){chatSocket._send({type:"group_mark_read",group_id:currentChat.target_id});}
@@ -314,7 +317,7 @@ function autoResizeTextarea(){var t=$("msgInput");t.style.height="auto";t.style.
 async function onFileSelect(e,mt){var f=e.target.files[0];if(!f)return;e.target.value="";if(mt===1){if(!f.type.match(/^image\/(jpeg|png)$/)){alert("仅支持JPG/PNG");return;}if(f.size>10*1024*1024){alert("最大10MB");return;}}else{var a=[".pdf",".docx",".xlsx",".pptx"],ex="."+f.name.split(".").pop().toLowerCase();if(a.indexOf(ex)===-1){alert("仅支持PDF/Word/Excel/PPT");return;}if(f.size>50*1024*1024){alert("最大50MB");return;}}var res=await apiUpload(f);if(res.code!==200){alert(res.detail||"失败");return;}if(!currentChat)return;if(currentChat.type==="private")chatSocket.sendPrivate(currentChat.name,res.file_url,mt);else chatSocket.sendGroup(currentChat.target_id,res.file_url,mt);appendBubble("me",myUsername,res.file_url,mt,formatTime(new Date()),null);}
 
 /* ==================== 消息气泡（带头像+已读+时间格式） ==================== */
-function appendBubble(side,sender,content,msgType,time,msgId){
+function appendBubble(side,sender,content,msgType,time,msgId,senderAvatar){
   var list=$("messageList"),em=$("messageEmpty");if(em)em.style.display="none";
   if(time){try{var d=time.slice(0,10);if(lastMsgDate&&lastMsgDate!==d){var dv=document.createElement("div");dv.className="time-divider";dv.innerHTML="<span>"+(time?time.slice(0,16):"")+"</span>";list.appendChild(dv);}lastMsgDate=d;}catch(e){}}
   var row=document.createElement("div");row.className="msg-row "+side;
@@ -323,7 +326,11 @@ function appendBubble(side,sender,content,msgType,time,msgId){
 
   // 对方消息头像
   if(side==="other"){
-    var av=document.createElement("div");av.className="msg-sender-avatar";av.textContent=(sender||"?").charAt(0).toUpperCase();row.appendChild(av);
+    var av=document.createElement("div");av.className="msg-sender-avatar";
+    var avatarUrl=senderAvatar||getAvatarForUser(sender);
+    if(avatarUrl){var aimg=document.createElement("img");aimg.src=avatarUrl;aimg.style.width="100%";aimg.style.height="100%";aimg.style.borderRadius="50%";aimg.style.objectFit="cover";aimg.onerror=function(){av.textContent=(sender||"?").charAt(0).toUpperCase();};av.appendChild(aimg);}
+    else{av.textContent=(sender||"?").charAt(0).toUpperCase();}
+    row.appendChild(av);
   }
 
   var wrap=document.createElement("div");wrap.className="msg-inner-wrap";
@@ -354,6 +361,7 @@ function appendBubble(side,sender,content,msgType,time,msgId){
   if(multiSelectMode)row.classList.add("multiselect-active"),cb.style.display="block";
   list.appendChild(row);list.scrollTop=list.scrollHeight;
 }
+function getAvatarForUser(username){if(!username)return"";for(var i=0;i<convListCache.length;i++){var c=convListCache[i];if(c.type==="private"&&c.name===username&&c.avatar)return c.avatar;}return"";}
 
 /* ==================== 消息右键菜单 ==================== */
 function onMsgContext(e,row){

@@ -73,6 +73,7 @@ def get_conversation_list(token: str, db: Session = Depends(get_db)):
             "type": "private",
             "target_id": fid,
             "name": friend.username,
+            "avatar": friend.avatar or "",
             "remark": remark,
             "last_msg": last_msg.content if last_msg else "",
             "last_time": last_msg.create_at.strftime("%Y-%m-%d %H:%M:%S") if last_msg and last_msg.create_at else "",

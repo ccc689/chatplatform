@@ -17,6 +17,7 @@ class HistoryRequest(BaseModel):
 
 class MessageItem(BaseModel):
     sender_name: str
+    sender_avatar: str = ""
     content: str
     message_type: int
     create_at: str
@@ -74,14 +75,16 @@ async def get_chat_history(req: HistoryRequest, db: Session = Depends(get_db)):
     for msg in messages:
         user_ids.add(msg.sender_id)
         user_ids.add(msg.receiver_id)
-    users = db.query(User.id, User.username).filter(User.id.in_(user_ids)).all()
+    users = db.query(User.id, User.username, User.avatar).filter(User.id.in_(user_ids)).all()
     user_map = {u.id: u.username for u in users}
+    avatar_map = {u.id: u.avatar or "" for u in users}
 
     data = []
     for msg in messages:
         sender_name = user_map.get(msg.sender_id, "未知用户")
         data.append(MessageItem(
             sender_name=sender_name,
+            sender_avatar=avatar_map.get(msg.sender_id, ""),
             content=msg.content,
             message_type=msg.message_type,
             create_at=msg.create_at.strftime("%Y-%m-%d %H:%M:%S")

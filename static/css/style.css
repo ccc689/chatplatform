@@ -437,8 +437,15 @@ button { cursor:pointer; background:none; color:inherit; }
   background:var(--wechat-green);
   flex-shrink:0; display:flex; align-items:center;
   justify-content:center; font-size:14px; font-weight:600; color:#fff;
-  margin-top:2px;
+  margin-top:2px; overflow:hidden;
 }
+.msg-sender-avatar img { width:100%; height:100%; border-radius:50%; object-fit:cover; }
+
+/* 会话列表头像支持 img */
+.conv-avatar {
+  overflow:hidden;
+}
+.conv-avatar img { width:100%; height:100%; border-radius:50%; object-fit:cover; }
 .msg-row.other .msg-inner-wrap {
   display:flex; flex-direction:column; align-items:flex-start;
 }
