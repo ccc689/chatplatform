@@ -79,6 +79,19 @@ class ConnectionManager:
         if count > 0:
             logger.info(f"群聊消息广播 group_id={group_id} sender_uid={sender_uid} 送达{count}人")
 
+    async def broadcast_to_group(self, group_id: int, member_ids: set, msg_json: dict):
+        """向群内所有在线成员广播管理事件通知（包括操作者本人）"""
+        count = 0
+        for member_uid in member_ids:
+            try:
+                ws = self.active_connections.get(member_uid)
+                if ws:
+                    await ws.send_json(msg_json)
+                    count += 1
+            except Exception:
+                logger.warning(f"群事件推送失败 group_id={group_id} target_uid={member_uid}")
+        return count
+
 
 # 全局单例管理器
 manager = ConnectionManager()

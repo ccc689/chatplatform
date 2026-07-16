@@ -31,6 +31,28 @@ MAX_IMAGE_SIZE = 10 * 1024 * 1024   # 10MB
 MAX_FILE_SIZE  = 50 * 1024 * 1024   # 50MB
 
 
+# 魔数字节签名验证（防止 MIME 类型伪造）
+IMAGE_MAGIC_BYTES = {
+    "image/jpeg": b'\xff\xd8\xff',
+    "image/png": b'\x89PNG\r\n\x1a\n',
+}
+FILE_MAGIC_BYTES = {
+    "application/pdf": b'%PDF',
+}
+
+
+def _verify_magic_bytes(data: bytes, content_type: str) -> bool:
+    """通过文件头魔数字节验证文件类型"""
+    if content_type in IMAGE_MAGIC_BYTES:
+        return data.startswith(IMAGE_MAGIC_BYTES[content_type])
+    if content_type in FILE_MAGIC_BYTES:
+        return data.startswith(FILE_MAGIC_BYTES[content_type])
+    # Office 文件 (ZIP-based) 检查
+    if content_type in ALLOWED_FILE and content_type not in FILE_MAGIC_BYTES:
+        return data.startswith(b'PK\x03\x04')  # ZIP header
+    return True
+
+
 def get_upload_dir() -> str:
     """获取按日期组织的上传目录"""
     today = datetime.now().strftime("%Y%m%d")
@@ -56,9 +78,13 @@ async def upload_file(
     if file.content_type in ALLOWED_IMAGE:
         if file_size > MAX_IMAGE_SIZE:
             raise HTTPException(status_code=400, detail="图片大小不能超过 10MB")
+        if not _verify_magic_bytes(content, file.content_type):
+            raise HTTPException(status_code=400, detail="文件内容与声明的图片类型不匹配")
     elif file.content_type in ALLOWED_FILE:
         if file_size > MAX_FILE_SIZE:
             raise HTTPException(status_code=400, detail="文件大小不能超过 50MB")
+        if not _verify_magic_bytes(content, file.content_type):
+            raise HTTPException(status_code=400, detail="文件内容与声明的文件类型不匹配")
     else:
         raise HTTPException(status_code=400, detail=f"不支持的文件格式: {file.content_type}")
 

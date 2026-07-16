@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, SmallInteger, Text, DateTime, BIGINT, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, SmallInteger, Text, DateTime, BIGINT, ForeignKey, JSON
 from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
 from dotenv import load_dotenv
@@ -71,6 +71,11 @@ class ChatGroup(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     group_name = Column(String(100), nullable=False, comment="群名称")
     owner_id = Column(Integer, nullable=False, comment="群主用户ID")
+    admin_ids = Column(JSON, default=list, comment="管理员UID列表(JSON数组)")
+    avatar = Column(String(255), default="", comment="群头像URL")
+    announcement = Column(Text, default="", comment="群公告")
+    join_mode = Column(SmallInteger, default=1, comment="入群模式: 0自由加入 1需验证")
+    is_disband = Column(SmallInteger, default=0, comment="0正常 1已解散")
     create_at = Column(DateTime, default=datetime.now, comment="创建时间")
 
 
@@ -79,6 +84,9 @@ class GroupMember(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     group_id = Column(Integer, ForeignKey("chat_group.id"), nullable=False, comment="群ID")
     user_id = Column(Integer, nullable=False, comment="用户ID")
+    role = Column(SmallInteger, default=0, comment="0普通成员 1管理员 2群主")
+    mute_until = Column(DateTime, nullable=True, comment="禁言截止时间(null=未禁言)")
+    is_quit = Column(SmallInteger, default=0, comment="0在群 1已退群")
     create_at = Column(DateTime, default=datetime.now, comment="加入时间")
 
 

@@ -86,6 +86,24 @@ var FriendAPI = {
   },
   search: function(kw) {
     return apiGet("/friend/search?token=" + getToken() + "&keyword=" + encodeURIComponent(kw));
+  },
+  profile: function(friendUsername) {
+    return apiGet("/friend/profile?token=" + getToken() + "&friend_username=" + encodeURIComponent(friendUsername));
+  },
+  setRemark: function(friendUsername, remark) {
+    return apiPost("/friend/remark", { token: getToken(), friend_username: friendUsername, remark: remark });
+  },
+  getRemark: function(friendUsername) {
+    return apiGet("/friend/remark?token=" + getToken() + "&friend_username=" + encodeURIComponent(friendUsername));
+  },
+  deleteFriend: function(friendUsername) {
+    return apiPost("/friend/delete", { token: getToken(), friend_username: friendUsername });
+  },
+  setMute: function(friendUsername, isMuted) {
+    return apiPost("/friend/mute?token=" + getToken() + "&friend_username=" + encodeURIComponent(friendUsername) + "&is_muted=" + (isMuted ? 1 : 0));
+  },
+  getMute: function(friendUsername) {
+    return apiGet("/friend/mute?token=" + getToken() + "&friend_username=" + encodeURIComponent(friendUsername));
   }
 };
 
@@ -107,6 +125,49 @@ var GroupAPI = {
   },
   leave: function(gid) {
     return apiPost("/group/leave", { token: getToken(), group_id: gid });
+  },
+  // group management
+  update: function(gid, data) {
+    return apiPost("/group/update", Object.assign({ token: getToken(), group_id: gid }, data));
+  },
+  kick: function(gid, targetUid) {
+    return apiPost("/group/kick", { token: getToken(), group_id: gid, target_uid: targetUid });
+  },
+  mute: function(gid, targetUid, duration) {
+    return apiPost("/group/mute", { token: getToken(), group_id: gid, target_uid: targetUid, duration: duration });
+  },
+  unmute: function(gid, targetUid) {
+    return apiPost("/group/unmute", { token: getToken(), group_id: gid, target_uid: targetUid });
+  },
+  setAdmin: function(gid, targetUid) {
+    return apiPost("/group/admin/set", { token: getToken(), group_id: gid, target_uid: targetUid });
+  },
+  revokeAdmin: function(gid, targetUid) {
+    return apiPost("/group/admin/revoke", { token: getToken(), group_id: gid, target_uid: targetUid });
+  },
+  transfer: function(gid, newOwnerUid) {
+    return apiPost("/group/transfer", { token: getToken(), group_id: gid, new_owner_uid: newOwnerUid });
+  },
+  disband: function(gid) {
+    return apiPost("/group/disband", { token: getToken(), group_id: gid });
+  },
+  announcement: function(gid) {
+    return apiGet("/group/announcement?token=" + getToken() + "&group_id=" + gid);
+  },
+  events: function(gid) {
+    return apiGet("/group/events?token=" + getToken() + "&group_id=" + gid);
+  },
+  applyList: function(gid) {
+    return apiGet("/group/apply/list?token=" + getToken() + "&group_id=" + gid);
+  },
+  dealApply: function(rid, op) {
+    return apiPost("/group/apply/deal", { token: getToken(), request_id: rid, operate: op });
+  },
+  muteSetting: function(gid, muted) {
+    return apiPost("/group/mute_setting?token=" + getToken() + "&group_id=" + gid + "&is_muted=" + (muted ? 1 : 0));
+  },
+  getMuteSetting: function(gid) {
+    return apiGet("/group/mute_setting?token=" + getToken() + "&group_id=" + gid);
   }
 };
 

@@ -10,6 +10,7 @@ from sqlalchemy import or_, and_, func
 from typing import List
 
 from database.db import get_db, User, FriendRelation, ChatMessage, ChatGroup, GroupMember
+from database.models.friend import FriendRemark
 from utils.security import get_current_user_from_token
 from utils.logger import get_logger
 
@@ -62,10 +63,17 @@ def get_conversation_list(token: str, db: Session = Depends(get_db)):
         # 好友的个性状态
         friend_status = friend.status_message or ""
 
+        # 查询我对该好友的备注
+        remark = db.query(FriendRemark.remark).filter(
+            FriendRemark.user_id == current_uid,
+            FriendRemark.friend_id == fid
+        ).scalar() or ""
+
         conversations.append({
             "type": "private",
             "target_id": fid,
             "name": friend.username,
+            "remark": remark,
             "last_msg": last_msg.content if last_msg else "",
             "last_time": last_msg.create_at.strftime("%Y-%m-%d %H:%M:%S") if last_msg and last_msg.create_at else "",
             "last_time_sort": last_msg.create_at.strftime("%Y%m%d%H%M%S") if last_msg and last_msg.create_at else "0",
@@ -74,9 +82,12 @@ def get_conversation_list(token: str, db: Session = Depends(get_db)):
         })
 
     # ========== 2. 群聊会话 ==========
-    my_groups = db.query(GroupMember).filter(GroupMember.user_id == current_uid).all()
+    my_groups = db.query(GroupMember).filter(
+        GroupMember.user_id == current_uid,
+        GroupMember.is_quit == 0
+    ).all()
     for member in my_groups:
-        group = db.query(ChatGroup).filter(ChatGroup.id == member.group_id).first()
+        group = db.query(ChatGroup).filter(ChatGroup.id == member.group_id, ChatGroup.is_disband == 0).first()
         if not group:
             continue
 
@@ -90,6 +101,8 @@ def get_conversation_list(token: str, db: Session = Depends(get_db)):
             "type": "group",
             "target_id": group.id,
             "name": group.group_name,
+            "avatar": group.avatar or "",
+            "announcement": (group.announcement or "")[:100],
             "last_msg": last_msg.content if last_msg else "",
             "last_time": last_msg.create_at.strftime("%Y-%m-%d %H:%M:%S") if last_msg and last_msg.create_at else "",
             "last_time_sort": last_msg.create_at.strftime("%Y%m%d%H%M%S") if last_msg and last_msg.create_at else "0",

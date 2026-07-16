@@ -26,29 +26,46 @@
   <div class="ctx-item" onclick="enterMultiSelect()">☑ 多选</div>
 </div>
 
-<!-- ====== 好友资料浮窗 ====== -->
-<div class="profile-card" id="profileCard">
-  <div class="profile-avatar" id="profileAvatar">👤</div>
-  <div class="profile-name" id="profileName"></div>
-  <div class="profile-remark" id="profileRemark"></div>
-  <div class="profile-actions">
-    <button class="btn-full green" onclick="profileSendMsg()">发送消息</button>
-    <button class="btn-full light" onclick="profileEditRemark()">设置备注</button>
-    <button class="btn-full light" style="color:var(--red);" onclick="profileDeleteFriend()">删除好友</button>
+<!-- ====== 好友资料弹窗（替代旧浮窗） ====== -->
+<div class="modal-overlay" id="friendProfileModal">
+  <div class="modal-box friend-profile-box" style="max-width:340px;">
+    <span class="modal-back-arrow" onclick="closeModal('friendProfileModal')">←</span>
+    <h3 style="margin-bottom:16px;">好友资料</h3>
+    <div id="friendProfileContent">
+      <div class="fp-top-section">
+        <div class="fp-avatar-wrap"><img id="fpAvatarImg" src="" style="display:none;"><span id="fpAvatarFallback" class="fp-avatar-text">?</span></div>
+        <div class="fp-username" id="fpUsername">---</div>
+        <div class="fp-role-badge" id="fpRoleBadge"></div>
+      </div>
+      <div class="fp-remark-row">
+        <span class="fp-remark-label">备注昵称</span>
+        <span class="fp-remark-value" id="fpRemarkValue">未设置</span>
+        <span class="fp-remark-edit" onclick="fpEditRemark()">✎</span>
+      </div>
+      <div class="fp-remark-edit-area" id="fpRemarkEditArea" style="display:none;">
+        <input type="text" class="input-row" id="fpRemarkInput" maxlength="12" placeholder="输入备注(最多12字)">
+        <div style="display:flex;gap:6px;margin-top:6px;"><button class="btn-confirm" onclick="fpSaveRemark()">保存</button><button class="btn-cancel" onclick="$('fpRemarkEditArea').style.display='none'">取消</button></div>
+      </div>
+      <div class="fp-info-section">
+        <div class="fp-info-row"><span class="fp-info-label">在线状态</span><span class="fp-info-value"><span class="online-dot-static" id="fpOnlineDot"></span><span id="fpOnlineText">离线</span></span></div>
+        <div class="fp-info-row"><span class="fp-info-label">个性签名</span><span class="fp-info-value" id="fpStatusMsg">未设置</span></div>
+        <div class="fp-info-row"><span class="fp-info-label">账号ID</span><span class="fp-info-value" id="fpAccountId">---</span></div>
+      </div>
+      <div class="fp-actions">
+        <button class="btn-full green" onclick="fpSendMsg()">💬 发送消息</button>
+        <button class="btn-full light" onclick="fpSendFile()">📎 发送文件</button>
+        <button class="btn-full light" id="fpMuteBtn" onclick="fpToggleMute()">🔕 消息免打扰</button>
+        <button class="btn-full light" onclick="fpClearChat()">🗑 删除聊天记录</button>
+        <button class="btn-full light" style="color:var(--red);" onclick="fpDeleteFriend()">❌ 删除好友</button>
+      </div>
+    </div>
+    <div class="modal-footer" style="margin-top:12px;"><button class="btn-cancel" onclick="closeModal('friendProfileModal')">关闭</button></div>
   </div>
 </div>
 
 <!-- ====== 图片预览 ====== -->
 <div class="modal-overlay" id="imagePreviewModal" onclick="closeModal('imagePreviewModal')">
   <img id="imagePreviewImg" style="max-width:90vw;max-height:90vh;border-radius:8px;" onclick="event.stopPropagation()">
-</div>
-
-<!-- ====== 群成员弹窗 ====== -->
-<div class="modal-overlay" id="groupMembersModal">
-  <div class="modal-box"><span class="modal-back-arrow" onclick="closeModal('groupMembersModal')">←</span>
-    <h3 id="groupMembersTitle">群成员</h3><div id="groupMembersList" style="max-height:300px;overflow-y:auto;"></div>
-    <div class="modal-footer" style="margin-top:12px;"><button class="btn-cancel" onclick="closeModal('groupMembersModal')">关闭</button></div>
-  </div>
 </div>
 
 <!-- ====== 已读成员弹窗 ====== -->
@@ -153,6 +170,84 @@
   <div class="modal-box"><span class="modal-back-arrow" onclick="closeModal('favoritesModal');showSettings();">←</span>
     <h3>⭐ 我的收藏</h3><div id="favoritesList" style="max-height:350px;overflow-y:auto;"></div>
     <div class="modal-footer" style="margin-top:12px;"><button class="btn-cancel" onclick="closeModal('favoritesModal');showSettings();">返回</button></div>
+  </div>
+</div>
+
+<!-- ====== 群管理主面板（点击「···」打开） ====== -->
+<div class="modal-overlay" id="groupManagePanel">
+  <div class="modal-box" style="max-width:360px;">
+    <span class="modal-back-arrow" onclick="closeModal('groupManagePanel')">←</span>
+    <h3 id="groupPanelTitle">群管理</h3>
+    <div id="groupPanelContent" style="max-height:400px;overflow-y:auto;"></div>
+    <div class="modal-footer" style="margin-top:12px;"><button class="btn-cancel" onclick="closeModal('groupManagePanel')">关闭</button></div>
+  </div>
+</div>
+
+<!-- ====== 禁言时长选择 ====== -->
+<div class="modal-overlay" id="muteDurationModal">
+  <div class="modal-box" style="max-width:300px;">
+    <span class="modal-back-arrow" onclick="closeModal('muteDurationModal');showGroupManagePanel()">←</span>
+    <h3>设置禁言时长</h3>
+    <div id="muteTargetInfo" style="font-size:13px;color:var(--text-sub);margin-bottom:10px;"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn-full light" onclick="doMuteMember('5m')">🕐 5 分钟</button>
+      <button class="btn-full light" onclick="doMuteMember('30m')">🕐 30 分钟</button>
+      <button class="btn-full light" onclick="doMuteMember('2h')">🕑 2 小时</button>
+      <button class="btn-full light" style="color:var(--red);" onclick="doMuteMember('forever')">🚫 永久禁言</button>
+    </div>
+    <div class="modal-footer" style="margin-top:12px;"><button class="btn-cancel" onclick="closeModal('muteDurationModal');showGroupManagePanel()">取消</button></div>
+  </div>
+</div>
+
+<!-- ====== 转让群主弹窗 ====== -->
+<div class="modal-overlay" id="transferOwnerModal">
+  <div class="modal-box" style="max-width:360px;">
+    <span class="modal-back-arrow" onclick="closeModal('transferOwnerModal');showGroupManagePanel()">←</span>
+    <h3>转让群主</h3>
+    <div id="transferCandidateList" style="max-height:260px;overflow-y:auto;"></div>
+    <div class="modal-footer" style="margin-top:12px;"><button class="btn-cancel" onclick="closeModal('transferOwnerModal');showGroupManagePanel()">取消</button></div>
+  </div>
+</div>
+
+<!-- ====== 修改群资料弹窗 ====== -->
+<div class="modal-overlay" id="editGroupModal">
+  <div class="modal-box" style="max-width:360px;">
+    <span class="modal-back-arrow" onclick="closeModal('editGroupModal');showGroupManagePanel()">←</span>
+    <h3>修改群资料</h3>
+    <input type="text" class="input-row" id="editGroupName" placeholder="群名称">
+    <textarea class="input-row" id="editGroupAnnouncement" placeholder="群公告（全群可见）" rows="3" style="resize:vertical;"></textarea>
+    <div style="font-size:13px;margin:8px 0;">入群方式:</div>
+    <select class="input-row" id="editJoinMode">
+      <option value="1">需要验证</option>
+      <option value="0">自由加入</option>
+    </select>
+    <div class="modal-footer" style="margin-top:12px;">
+      <button class="btn-confirm" onclick="saveGroupInfo()">保存</button>
+      <button class="btn-cancel" onclick="closeModal('editGroupModal');showGroupManagePanel()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 群公告编辑弹窗 ====== -->
+<div class="modal-overlay" id="announcementEditModal">
+  <div class="modal-box" style="max-width:360px;">
+    <span class="modal-back-arrow" onclick="closeModal('announcementEditModal')">←</span>
+    <h3>编辑群公告</h3>
+    <textarea class="input-row" id="announcementEditText" placeholder="输入群公告内容（全群可见）" rows="5" style="resize:vertical;border:1.5px solid var(--border);border-radius:8px;padding:10px;width:100%;font-family:inherit;font-size:14px;color:var(--text-main);background:var(--bg-card);"></textarea>
+    <div class="modal-footer" style="margin-top:12px;">
+      <button class="btn-confirm" onclick="saveAnnouncement()">保存</button>
+      <button class="btn-cancel" onclick="closeModal('announcementEditModal')">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 入群申请列表 ====== -->
+<div class="modal-overlay" id="joinRequestsModal">
+  <div class="modal-box" style="max-width:360px;">
+    <span class="modal-back-arrow" onclick="closeModal('joinRequestsModal');showGroupManagePanel()">←</span>
+    <h3>入群申请</h3>
+    <div id="joinRequestsList" style="max-height:300px;overflow-y:auto;"></div>
+    <div class="modal-footer" style="margin-top:12px;"><button class="btn-cancel" onclick="closeModal('joinRequestsModal');showGroupManagePanel()">关闭</button></div>
   </div>
 </div>
 

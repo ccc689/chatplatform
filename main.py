@@ -14,6 +14,8 @@ from jose import jwt, JWTError
 
 # 数据库
 from database.db import engine, get_db, SessionLocal, Base, User, FriendRelation, ChatMessage, ChatGroup, GroupMember, UploadResource
+from database.models.chat import GroupEvent, GroupJoinRequest, GroupMuteSetting
+from database.models.friend import FriendRemark, FriendMuteSetting
 # 路由
 from api.user import router as user_router
 from api.friend import router as friend_router
@@ -188,19 +190,31 @@ async def websocket_chat_endpoint(websocket: WebSocket):
 
                 db = await asyncio.to_thread(get_sync_db)
                 try:
-                    # 校验群是否存在
+                    # 校验群是否存在且未解散
                     group = db.query(ChatGroup).filter(ChatGroup.id == group_id).first()
                     if not group:
                         await websocket.send_json({"type": "error", "msg": "群聊不存在"})
                         continue
+                    if group.is_disband == 1:
+                        await websocket.send_json({"type": "error", "msg": "群聊已解散"})
+                        continue
 
-                    # 校验是否为群成员
+                    # 校验是否为群成员且未退群
                     is_member = db.query(GroupMember).filter(
                         GroupMember.group_id == group_id,
-                        GroupMember.user_id == uid
+                        GroupMember.user_id == uid,
+                        GroupMember.is_quit == 0
                     ).first()
                     if not is_member:
                         await websocket.send_json({"type": "error", "msg": "你不是该群成员"})
+                        continue
+
+                    # 检查是否被禁言
+                    if is_member.mute_until and is_member.mute_until > datetime.now():
+                        await websocket.send_json({
+                            "type": "error",
+                            "msg": f"你已被管理员禁言，截止 {is_member.mute_until.strftime('%m-%d %H:%M')}"
+                        })
                         continue
 
                     # 入库
@@ -221,9 +235,10 @@ async def websocket_chat_endpoint(websocket: WebSocket):
                         await websocket.send_json({"type": "error", "msg": "消息入库失败"})
                         continue
 
-                    # 查询所有群成员
+                    # 查询所有群成员（含已退群的也能收到历史消息，但推送只给在群成员）
                     members = db.query(GroupMember.user_id).filter(
-                        GroupMember.group_id == group_id
+                        GroupMember.group_id == group_id,
+                        GroupMember.is_quit == 0
                     ).all()
                     member_ids = {m.user_id for m in members}
 
@@ -243,7 +258,7 @@ async def websocket_chat_endpoint(websocket: WebSocket):
                     # 广播给在线群成员
                     await manager.send_group_msg(group_id, uid, online_members, push_data)
 
-                    logger.info(f"[WS群聊] {current_username}({uid}) -> group({group_id}): {content[:30]} 送达{len(online_members & {uid})}/{len(online_members)}人")
+                    logger.info(f"[WS群聊] {current_username}({uid}) -> group({group_id}): {content[:30]} 送达{len(online_members)}人")
                 except Exception as e:
                     await websocket.send_json({"type": "error", "msg": f"群消息发送失败: {str(e)}"})
                 finally:
@@ -297,6 +312,46 @@ async def websocket_chat_endpoint(websocket: WebSocket):
                                     "reader_uid": uid,
                                     "reader_username": current_username
                                 })
+                    finally:
+                        db2.close()
+
+            # ========== 群管理系统通知广播 ==========
+            elif msg_type == "group_sys_notify":
+                gid = msg_data.get("group_id")
+                notify_type = msg_data.get("notify_type", "")
+                if gid and notify_type:
+                    db2 = await asyncio.to_thread(get_sync_db)
+                    try:
+                        # 验证发送者是该群管理员或群主
+                        group = db2.query(ChatGroup).filter(
+                            ChatGroup.id == gid, ChatGroup.is_disband == 0
+                        ).first()
+                        if not group:
+                            continue
+                        is_owner = group.owner_id == uid
+                        is_admin = is_owner or (group.admin_ids and uid in (group.admin_ids or []))
+                        if not is_admin:
+                            logger.warning(f"[WS群管理] 拒绝未授权通知 uid={uid} group_id={gid} notify_type={notify_type}")
+                            continue
+
+                        members = db2.query(GroupMember.user_id).filter(
+                            GroupMember.group_id == gid, GroupMember.is_quit == 0
+                        ).all()
+                        member_ids = {m.user_id for m in members}
+                        online = manager.get_online_users() & member_ids
+                        notify_data = {
+                            "type": "group_sys_notify",
+                            "group_id": gid,
+                            "notify_type": notify_type,
+                            "operator_name": current_username,
+                            "operator_id": uid,
+                            "target_name": msg_data.get("target_name", ""),
+                            "target_id": msg_data.get("target_id", 0),
+                            "desc": msg_data.get("desc", ""),
+                            "create_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        }
+                        count = await manager.broadcast_to_group(gid, online, notify_data)
+                        logger.info(f"[WS群管理] {notify_type} group_id={gid} operator={current_username} 送达{count}人")
                     finally:
                         db2.close()
 

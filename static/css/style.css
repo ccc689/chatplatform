@@ -784,6 +784,149 @@ button { cursor:pointer; background:none; color:inherit; }
 .chat-friend-status.visible { display:block; }
 
 /* ============================================
+   九、群管理面板 (redesigned)
+   ============================================ */
+.gp-top-section {
+  text-align: center;
+  padding: 12px 0 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+.gp-avatar {
+  width: 56px; height: 56px; border-radius: 50%;
+  object-fit: cover; margin: 0 auto 10px; display: block;
+}
+.gp-avatar-fallback {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--bg-input);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; margin: 0 auto 10px;
+}
+.gp-name {
+  font-size: 16px; font-weight: 500; color: var(--text-main);
+  margin-bottom: 6px;
+}
+.gp-announce-preview {
+  font-size: 12px; color: var(--text-sub);
+  padding: 0 8px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+
+.gp-admin-buttons {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 4px 0;
+}
+.gp-btn {
+  width: 100%; padding: 10px 14px; border-radius: 8px;
+  background: transparent; color: var(--text-main);
+  font-size: 14px; text-align: left; cursor: pointer;
+  transition: background var(--transition); border: none;
+}
+.gp-btn:hover { background: var(--bg-hover); }
+
+.gp-functions {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 4px 0;
+}
+.gp-func-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: 8px; cursor: pointer;
+  font-size: 14px; transition: background var(--transition);
+}
+.gp-func-item:hover { background: var(--bg-hover); }
+.gp-func-row { cursor: default; }
+.gp-func-row:hover { background: transparent; }
+
+.gp-member-section {
+  margin-top: 8px;
+}
+.gp-member-header {
+  font-size: 13px; color: var(--text-sub);
+  padding: 8px 0; border-bottom: 1px solid var(--border-light);
+  margin-bottom: 4px;
+}
+
+/* btn-mini: compact action buttons in group member list */
+.btn-mini {
+  width: 26px; height: 26px; border-radius: 6px;
+  border: none; background: var(--bg-input);
+  font-size: 13px; cursor: pointer; display: inline-flex;
+  align-items: center; justify-content: center;
+  transition: background var(--transition);
+}
+.btn-mini:hover { background: var(--bg-hover); }
+
+/* ============================================
+   十、好友资料弹窗 (redesigned)
+   ============================================ */
+.friend-profile-box {
+  text-align: center; padding: 28px 24px 16px;
+}
+.fp-top-section { margin-bottom: 16px; }
+.fp-avatar-wrap {
+  width: 64px; height: 64px; border-radius: 50%;
+  margin: 0 auto 12px; background: var(--bg-input);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.fp-avatar-wrap img {
+  width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+}
+.fp-avatar-text {
+  font-size: 28px; color: var(--text-main);
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+}
+.fp-username {
+  font-size: 17px; font-weight: 500; color: var(--text-main); margin-bottom: 4px;
+}
+.fp-role-badge {
+  font-size: 13px; color: var(--text-sub); min-height: 18px;
+}
+
+.fp-remark-row {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 12px 0; border-top: 1px solid var(--border-light); font-size: 14px;
+}
+.fp-remark-label { color: var(--text-sub); }
+.fp-remark-value { color: var(--text-main); }
+.fp-remark-edit {
+  font-size: 13px; color: var(--green); cursor: pointer;
+  padding: 2px 6px; border-radius: 4px;
+  transition: background var(--transition);
+}
+.fp-remark-edit:hover { background: var(--green-light); }
+.fp-remark-edit-area {
+  display: flex; flex-direction: column; padding: 8px 0;
+  border-top: 1px solid var(--border-light);
+}
+
+.fp-info-section {
+  text-align: left; border-top: 1px solid var(--border-light); padding: 12px 0;
+}
+.fp-info-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0; font-size: 14px;
+}
+.fp-info-label { color: var(--text-sub); }
+.fp-info-value {
+  color: var(--text-main); display: flex; align-items: center; gap: 6px;
+}
+.online-dot-static {
+  width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+  background: #ccc;
+}
+
+/* system notification messages in chat */
+.system-msg span {
+  color: var(--text-sub); font-style: italic; font-size: 12px;
+}
+
+.fp-actions {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 0; border-top: 1px solid var(--border-light);
+}
+
+/* ============================================
    八、响应式
    ============================================ */
 @media (max-width:900px) {

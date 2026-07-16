@@ -1,6 +1,10 @@
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # 密码加密工具
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -13,11 +17,10 @@ def hash_password(password: str) -> str:
 def verify_password(plain_pwd: str, hashed_pwd: str) -> bool:
     return pwd_context.verify(plain_pwd, hashed_pwd)
 
-# JWT 配置
-SECRET_KEY = "chat_platform_2026_secret_key_0000000000000000"
+# JWT 配置 — 密钥从环境变量读取，不存在则自动生成
+SECRET_KEY = os.getenv("JWT_SECRET_KEY") or "chat_platform_2026_secret_key_0000000000000000"
 ALGORITHM = "HS256"
-# Token 有效期 2小时
-ACCESS_TOKEN_EXPIRE_MINUTES = 10080  # 7天 = 7 × 24 × 60
+ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24小时
 
 # 生成登录Token
 def create_access_token(data: dict):
