@@ -3,216 +3,235 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>数字方舟 — 登录</title>
-  <link rel="stylesheet" href="/static/css/style.css">
+  <title>数字方舟 — 连接每一刻，沟通无界限</title>
+  <meta name="description" content="数字方舟 — 安全、快速、优雅的现代聊天平台。融合即时通讯的便捷与强大，让每一次对话都充满温度。">
+  <link rel="stylesheet" href="/static/css/landing.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
 </head>
 <body>
-  <div class="auth-container">
-    <div class="auth-card">
-      <!-- Logo -->
-      <div class="auth-logo">
-        <span class="logo-icon"></span>
-        <h3>数字方舟</h3>
-      </div>
 
-      <!-- Tab -->
-      <div class="auth-tabs" id="authTabs">
-        <div class="tab-indicator" id="tabIndicator"></div>
-        <div class="auth-tab active" onclick="switchTab('login')">登录</div>
-        <div class="auth-tab" onclick="switchTab('register')">注册</div>
-      </div>
+<!-- ====== Navigation ====== -->
+<nav class="nav" id="navbar">
+  <div class="nav-brand">
+    <div class="nav-logo">💬</div>
+    <span>数字方舟</span>
+  </div>
+  <div class="nav-links">
+    <a href="#features" class="nav-link">功能</a>
+    <a href="#showcase" class="nav-link">体验</a>
+    <a href="/static/login.html" class="nav-link nav-link-primary">登录</a>
+  </div>
+</nav>
 
-      <!-- 登录表单 -->
-      <form id="loginForm" class="auth-form" onsubmit="return handleLogin(event)">
-        <div class="input-wrapper">
-          <input type="text" id="loginUser" placeholder="请输入用户名" required autocomplete="username"
-            oninput="toggleClear('loginUser','loginClear')">
-          <span class="input-clear" id="loginClear" onclick="clearInput('loginUser','loginClear')">✕</span>
-        </div>
-        <div class="input-wrapper">
-          <input type="password" id="loginPass" placeholder="请输入密码" required autocomplete="current-password">
-          <span class="input-pwd-toggle" id="loginPwdToggle" onclick="togglePwd('loginPass','loginPwdToggle')">🙈</span>
-        </div>
-        <button type="submit" class="btn-primary">登录</button>
-      </form>
+<!-- ====== Hero Section ====== -->
+<section class="hero">
+  <div class="hero-bg">
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="hero-orb hero-orb-3"></div>
+    <div class="hero-grid"></div>
+  </div>
 
-      <!-- 注册表单 -->
-      <form id="registerForm" class="auth-form" style="display:none" onsubmit="return handleRegister(event)">
-        <div class="input-wrapper">
-          <input type="text" id="regUser" placeholder="请输入用户名" required autocomplete="username"
-            oninput="toggleClear('regUser','regClear')">
-          <span class="input-clear" id="regClear" onclick="clearInput('regUser','regClear')">✕</span>
-        </div>
-        <div class="input-wrapper">
-          <input type="password" id="regPass" placeholder="请设置密码（至少6位）" required
-            oninput="checkPwStrength(); toggleClear('regPass','regPassClear')">
-          <span class="input-clear" id="regPassClear" onclick="clearInput('regPass','regPassClear')">✕</span>
-          <span class="input-pwd-toggle" id="regPwdToggle" onclick="togglePwd('regPass','regPwdToggle')">🙈</span>
-        </div>
-        <div class="pw-strength" id="pwStrength">
-          <span class="bar" id="bar1"></span><span class="bar" id="bar2"></span><span class="bar" id="bar3"></span>
-        </div>
-        <div class="input-wrapper">
-          <input type="password" id="regPass2" placeholder="请再次输入密码" required
-            oninput="checkPwMatch()">
-          <span class="input-pwd-toggle" id="regPwdToggle2" onclick="togglePwd('regPass2','regPwdToggle2')">🙈</span>
-        </div>
-        <div id="matchMsg"></div>
-        <button type="submit" class="btn-primary">注册</button>
-      </form>
-
-      <div id="authMsg" class="auth-msg"></div>
-      <div class="auth-extra" id="authExtra">还没有账号？<a onclick="switchTab('register')">去注册</a></div>
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      全新一代即时通讯平台
     </div>
 
-    <!-- 密码错误弹窗 -->
-    <div class="modal-overlay" id="pwdErrorModal">
-      <div class="modal-box" style="width:320px;text-align:center;">
-        <p style="font-size:15px;color:#333;margin:8px 0 20px;">用户名或密码错误，请重新输入</p>
-        <button class="btn-full green" onclick="closePwdError()">确定</button>
+    <h1 class="hero-title">
+      连接每一刻<br>
+      <span class="hero-title-gradient">沟通无界限</span>
+    </h1>
+
+    <p class="hero-desc">
+      安全、快速、优雅的现代聊天体验。融合微信的便捷与 Telegram 的强大，
+      支持私聊、群聊、文件分享与实时状态，让你的每一次对话都充满温度。
+    </p>
+
+    <div class="hero-actions">
+      <a href="/static/login.html" class="btn-hero">
+        立即开始
+        <span class="btn-hero-arrow">→</span>
+      </a>
+      <a href="#features" class="btn-hero-ghost">
+        了解更多
+        <span>↓</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ====== Features Section ====== -->
+<section class="features" id="features">
+  <div class="section-label">核心能力</div>
+  <h2 class="section-title">为现代沟通而设计</h2>
+  <p class="section-desc">每一个细节都经过精心打磨，为你带来流畅、安全、高效的通讯体验。</p>
+
+  <div class="features-grid">
+    <div class="feature-card animate-on-scroll">
+      <div class="feature-card-icon blue">⚡</div>
+      <h3>实时消息</h3>
+      <p>基于 WebSocket 的毫秒级实时推送，消息收发零延迟，正在输入状态一目了然。</p>
+    </div>
+
+    <div class="feature-card animate-on-scroll">
+      <div class="feature-card-icon purple">🔐</div>
+      <h3>安全可靠</h3>
+      <p>JWT 令牌认证 + 端到端传输加密，确保你的每一次对话都安全无虞。</p>
+    </div>
+
+    <div class="feature-card animate-on-scroll">
+      <div class="feature-card-icon green">👥</div>
+      <h3>群组协作</h3>
+      <p>强大的群管理功能 — 创建群聊、成员管理、禁言控制、群公告，满足团队协作所需。</p>
+    </div>
+
+    <div class="feature-card animate-on-scroll">
+      <div class="feature-card-icon orange">🎨</div>
+      <h3>精致体验</h3>
+      <p>亮色 / 暗色双主题无缝切换，微信风格的聊天气泡设计，现代优雅的视觉语言。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====== Showcase Section ====== -->
+<section class="showcase" id="showcase">
+  <div class="showcase-content">
+    <div class="showcase-text animate-on-scroll">
+      <h2>不只是聊天工具<br>更是你的社交枢纽</h2>
+      <p>
+        无论是一对一的私密对话，还是热闹的群组讨论，
+        数字方舟都能为你提供恰到好处的功能与体验。
+      </p>
+      <ul class="showcase-features">
+        <li>
+          <span class="check-icon">✓</span>
+          好友管理 — 搜索、添加、备注、免打扰
+        </li>
+        <li>
+          <span class="check-icon">✓</span>
+          文件分享 — 图片、文档一键发送
+        </li>
+        <li>
+          <span class="check-icon">✓</span>
+          消息收藏 — 重要信息永不丢失
+        </li>
+        <li>
+          <span class="check-icon">✓</span>
+          消息撤回 — 支持已发消息召回
+        </li>
+        <li>
+          <span class="check-icon">✓</span>
+          多端同步 — 消息历史云端存储
+        </li>
+      </ul>
+    </div>
+
+    <div class="showcase-preview animate-on-scroll">
+      <div class="preview-window">
+        <div class="preview-header">
+          <span class="preview-dot red"></span>
+          <span class="preview-dot yellow"></span>
+          <span class="preview-dot green"></span>
+          <span class="preview-title">数字方舟 · 聊天</span>
+        </div>
+        <div class="preview-chat">
+          <div class="preview-msg">
+            <div class="preview-avatar"></div>
+            <div class="preview-bubble">嘿，周末一起去露营怎么样？🏕️</div>
+          </div>
+          <div class="preview-msg sent">
+            <div class="preview-avatar"></div>
+            <div class="preview-bubble">好主意！我来准备装备 ⛺</div>
+          </div>
+          <div class="preview-msg">
+            <div class="preview-avatar"></div>
+            <div class="preview-bubble preview-bubble-short">太棒了！期待～</div>
+          </div>
+          <div class="preview-input-bar">输入消息…</div>
+        </div>
       </div>
     </div>
   </div>
+</section>
 
-  <script src="/static/js/api.js"></script>
-  <script>
-    if (isLoggedIn()) { window.location.href = "/static/chat.html"; }
+<!-- ====== Trust Stats ====== -->
+<section class="trust">
+  <div class="trust-grid">
+    <div>
+      <div class="trust-stat">实时</div>
+      <div class="trust-label">WebSocket 毫秒级推送</div>
+    </div>
+    <div>
+      <div class="trust-stat">安全</div>
+      <div class="trust-label">JWT + 加密认证体系</div>
+    </div>
+    <div>
+      <div class="trust-stat">优雅</div>
+      <div class="trust-label">双主题 · 现代设计语言</div>
+    </div>
+  </div>
+</section>
 
-    // ====== Tab 滑动指示器 ======
-    function switchTab(tab) {
-      var tabs = document.querySelectorAll('.auth-tab');
-      tabs.forEach(function(t) { t.classList.remove('active'); });
-      document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
-      document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
-      document.getElementById('authMsg').textContent = '';
-      document.getElementById('matchMsg').innerHTML = '';
-      document.getElementById('authExtra').innerHTML =
-        tab === 'login'
-          ? '还没有账号？<a onclick="switchTab(\'register\')">去注册</a>'
-          : '已有账号？<a onclick="switchTab(\'login\')">去登录</a>';
-      tabs[tab === 'login' ? 0 : 1].classList.add('active');
-      var ind = document.getElementById('tabIndicator');
-      var t = tab === 'login' ? tabs[0] : tabs[1];
-      ind.style.left = t.offsetLeft + 'px';
-      ind.style.width = t.offsetWidth + 'px';
-    }
+<!-- ====== Bottom CTA ====== -->
+<section class="cta-bottom">
+  <h2>准备好开始了吗？</h2>
+  <p>免费注册，即刻体验新一代聊天平台的全部功能。</p>
+  <a href="/static/login.html" class="btn-hero">
+    免费开始使用
+    <span class="btn-hero-arrow">→</span>
+  </a>
+</section>
 
-    // ====== 输入框清除按钮 ======
-    function toggleClear(inputId, clearId) {
-      var v = document.getElementById(inputId).value;
-      document.getElementById(clearId).classList.toggle('visible', v.length > 0);
-    }
-    function clearInput(inputId, clearId) {
-      document.getElementById(inputId).value = '';
-      document.getElementById(clearId).classList.remove('visible');
-      document.getElementById(inputId).focus();
-      if (inputId === 'regPass') { checkPwStrength(); }
-    }
+<!-- ====== Footer ====== -->
+<footer class="footer">
+  <div class="footer-brand">
+    <span>💬</span>
+    <span>数字方舟</span>
+  </div>
+  <div class="footer-links">
+    <a href="#features">功能特性</a>
+    <a href="#showcase">产品体验</a>
+    <a href="/static/login.html">登录</a>
+  </div>
+  <p>&copy; 2026 数字方舟 · 让沟通更有温度</p>
+</footer>
 
-    // ====== 密码显示/隐藏（🙈 闭眼 / 🐵 睁眼） ======
-    function togglePwd(inputId, toggleId) {
-      var inp = document.getElementById(inputId);
-      var icon = document.getElementById(toggleId);
-      if (inp.type === 'password') {
-        inp.type = 'text';
-        icon.textContent = '🐵';
-      } else {
-        inp.type = 'password';
-        icon.textContent = '🙈';
+<!-- ====== Scroll Animation Script ====== -->
+<script>
+  // Intersection Observer for scroll-triggered animations
+  const observerOptions = {
+    threshold: 0.15,
+    rootMargin: '0px 0px -50px 0px'
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
       }
-    }
-
-    // ====== 密码错误弹窗 ======
-    function showPwdError() {
-      document.getElementById('pwdErrorModal').classList.add('visible');
-    }
-    function closePwdError() {
-      document.getElementById('pwdErrorModal').classList.remove('visible');
-      // 仅清空密码框，保留用户名
-      document.getElementById('loginPass').value = '';
-      document.getElementById('loginPass').focus();
-    }
-    // 点击遮罩关闭
-    document.addEventListener('click', function(e) {
-      if (e.target.id === 'pwdErrorModal') closePwdError();
     });
+  }, observerOptions);
 
-    // ====== 密码强度 ======
-    function checkPwStrength() {
-      var pw = document.getElementById('regPass').value;
-      var b1 = document.getElementById('bar1'), b2 = document.getElementById('bar2'), b3 = document.getElementById('bar3');
-      [b1,b2,b3].forEach(function(b) { b.className = 'bar'; });
-      if (pw.length === 0) return;
-      var score = 0;
-      if (pw.length >= 6) score++;
-      if (pw.length >= 10) score++;
-      if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-      if (/\d/.test(pw)) score++;
-      if (/[^A-Za-z0-9]/.test(pw)) score++;
-      if (score <= 1) { b1.className = 'bar weak'; b2.className = 'bar weak'; }
-      else if (score <= 3) { b1.className = 'bar medium'; b2.className = 'bar medium'; }
-      else { b1.className = 'bar strong'; b2.className = 'bar strong'; b3.className = 'bar strong'; }
+  document.querySelectorAll('.animate-on-scroll').forEach(el => {
+    observer.observe(el);
+  });
+
+  // Navbar scroll effect
+  const navbar = document.getElementById('navbar');
+  let lastScroll = 0;
+
+  window.addEventListener('scroll', () => {
+    const currentScroll = window.pageYOffset;
+    if (currentScroll > 50) {
+      navbar.classList.add('scrolled');
+    } else {
+      navbar.classList.remove('scrolled');
     }
+    lastScroll = currentScroll;
+  }, { passive: true });
+</script>
 
-    // ====== 确认密码匹配 ======
-    function checkPwMatch() {
-      var p1 = document.getElementById('regPass').value;
-      var p2 = document.getElementById('regPass2').value;
-      var el = document.getElementById('matchMsg');
-      if (p2.length === 0) { el.innerHTML = ''; return; }
-      if (p1 === p2) el.innerHTML = '<div class="match-ok">✓ 密码一致</div>';
-      else el.innerHTML = '<div class="match-err">✗ 密码不一致</div>';
-    }
-
-    // ====== 登录（修复错误处理逻辑） ======
-    async function handleLogin(e) {
-      e.preventDefault();
-      var u = document.getElementById('loginUser').value.trim();
-      var p = document.getElementById('loginPass').value;
-
-      // 直接 fetch，绕过 apiPost 的全局 401 处理
-      var resp = await fetch("/user/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: u, password: p })
-      });
-      var data = await resp.json();
-
-      if (data.code === 200 && data.access_token) {
-        setToken(data.access_token);
-        localStorage.setItem("my_username", u);
-        window.location.href = "/static/chat.html";
-      } else {
-        // 区分密码错误 vs 其他错误
-        var detail = (data.detail || "").toLowerCase();
-        if (resp.status === 401 && (detail.indexOf("密码") !== -1 || detail.indexOf("用户") !== -1 || detail.indexOf("账号") !== -1)) {
-          showPwdError();
-        } else if (resp.status === 401 && (detail.indexOf("token") !== -1 || detail.indexOf("过期") !== -1)) {
-          alert("登录已过期，请重新登录");
-          logout();
-        } else {
-          document.getElementById('authMsg').textContent = data.detail || data.msg || '登录失败';
-        }
-      }
-    }
-
-    // ====== 注册 ======
-    async function handleRegister(e) {
-      e.preventDefault();
-      var u = document.getElementById('regUser').value.trim();
-      var p1 = document.getElementById('regPass').value;
-      var p2 = document.getElementById('regPass2').value;
-      if (p1 !== p2) { document.getElementById('authMsg').textContent = '两次密码不一致'; return; }
-      if (p1.length < 6) { document.getElementById('authMsg').textContent = '密码至少6位'; return; }
-      var res = await UserAPI.register(u, p1);
-      if (res.code === 200) {
-        document.getElementById('authMsg').style.color = 'var(--green)';
-        document.getElementById('authMsg').textContent = '注册成功！即将跳转登录…';
-        setTimeout(function() { switchTab('login'); }, 1200);
-      } else {
-        document.getElementById('authMsg').textContent = res.detail || res.msg || '注册失败';
-      }
-    }
-  </script>
 </body>
 </html>

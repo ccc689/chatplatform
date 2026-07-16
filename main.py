@@ -65,8 +65,14 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 async def root():
-    """根路径跳转到登录页"""
+    """根路径 — 产品 Landing Page"""
     return FileResponse("static/index.html")
+
+
+@app.get("/login")
+async def login_page():
+    """登录/注册页面"""
+    return FileResponse("static/login.html")
 
 # 同步数据库会话工具，通过 asyncio.to_thread 在后台线程执行，防止阻塞事件循环
 def get_sync_db():

@@ -70,7 +70,7 @@ function applyTheme(){var t=getTheme();document.documentElement.setAttribute("da
 
 /* ==================== 初始化 ==================== */
 window.addEventListener("DOMContentLoaded",function(){
-  if(!isLoggedIn()){window.location.href="/static/index.html";return;}
+  if(!isLoggedIn()){window.location.href="/static/login.html";return;}
   myUsername=localStorage.getItem("my_username")||"我";myAvatar=localStorage.getItem("my_avatar")||"";myStatus=localStorage.getItem("my_status")||"";myUserId=parseInt(localStorage.getItem("my_user_id"))||0;
   $("myUsername").textContent=myUsername;applyTheme();refreshMyAvatar();
   chatSocket.onMsg=handleWsMessage;chatSocket.connect();

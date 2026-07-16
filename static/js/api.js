@@ -19,7 +19,7 @@ function isLoggedIn() {
 }
 function logout() {
   clearToken();
-  window.location.href = "/static/index.html";
+  window.location.href = "/static/login.html";
 }
 
 /* ---------- 基础请求 ---------- */
