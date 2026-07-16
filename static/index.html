@@ -10,6 +10,8 @@
 </head>
 <body>
 
+<!-- ====== Cursor Glow (JS-driven) ====== -->
+
 <!-- ====== Navigation ====== -->
 <nav class="nav" id="navbar">
   <div class="nav-brand">
@@ -25,13 +27,25 @@
 
 <!-- ====== Hero Section ====== -->
 <section class="hero">
-  <div class="hero-bg">
-    <div class="hero-orb hero-orb-1"></div>
-    <div class="hero-orb hero-orb-2"></div>
-    <div class="hero-orb hero-orb-3"></div>
-    <div class="hero-grid"></div>
+  <!-- Multi-layer BG -->
+  <div class="hero-bg-layers">
+    <div class="hero-bg-layer hero-bg-layer-1"></div>
+    <div class="hero-bg-layer hero-bg-layer-2"></div>
+    <div class="hero-bg-layer hero-bg-layer-3"></div>
   </div>
 
+  <!-- Light spots -->
+  <div class="hero-light-spot hero-light-spot-1"></div>
+  <div class="hero-light-spot hero-light-spot-2"></div>
+  <div class="hero-light-spot hero-light-spot-3"></div>
+
+  <!-- Grid overlay -->
+  <div class="hero-grid-overlay"></div>
+
+  <!-- Canvas for particles + floating cards + connections -->
+  <canvas id="heroCanvas"></canvas>
+
+  <!-- Hero content -->
   <div class="hero-content">
     <div class="hero-badge">
       <span class="hero-badge-dot"></span>
@@ -63,30 +77,30 @@
 
 <!-- ====== Features Section ====== -->
 <section class="features" id="features">
-  <div class="section-label">核心能力</div>
-  <h2 class="section-title">为现代沟通而设计</h2>
-  <p class="section-desc">每一个细节都经过精心打磨，为你带来流畅、安全、高效的通讯体验。</p>
+  <div class="section-label anim-fade-up">核心能力</div>
+  <h2 class="section-title anim-fade-up">为现代沟通而设计</h2>
+  <p class="section-desc anim-fade-up">每一个细节都经过精心打磨，为你带来流畅、安全、高效的通讯体验。</p>
 
-  <div class="features-grid">
-    <div class="feature-card animate-on-scroll">
+  <div class="features-grid anim-stagger">
+    <div class="feature-card">
       <div class="feature-card-icon blue">⚡</div>
       <h3>实时消息</h3>
       <p>基于 WebSocket 的毫秒级实时推送，消息收发零延迟，正在输入状态一目了然。</p>
     </div>
 
-    <div class="feature-card animate-on-scroll">
+    <div class="feature-card">
       <div class="feature-card-icon purple">🔐</div>
       <h3>安全可靠</h3>
       <p>JWT 令牌认证 + 端到端传输加密，确保你的每一次对话都安全无虞。</p>
     </div>
 
-    <div class="feature-card animate-on-scroll">
+    <div class="feature-card">
       <div class="feature-card-icon green">👥</div>
       <h3>群组协作</h3>
       <p>强大的群管理功能 — 创建群聊、成员管理、禁言控制、群公告，满足团队协作所需。</p>
     </div>
 
-    <div class="feature-card animate-on-scroll">
+    <div class="feature-card">
       <div class="feature-card-icon orange">🎨</div>
       <h3>精致体验</h3>
       <p>亮色 / 暗色双主题无缝切换，微信风格的聊天气泡设计，现代优雅的视觉语言。</p>
@@ -94,10 +108,10 @@
   </div>
 </section>
 
-<!-- ====== Showcase Section ====== -->
+<!-- ====== Chat Showcase Section ====== -->
 <section class="showcase" id="showcase">
   <div class="showcase-content">
-    <div class="showcase-text animate-on-scroll">
+    <div class="showcase-text anim-fade-up">
       <h2>不只是聊天工具<br>更是你的社交枢纽</h2>
       <p>
         无论是一对一的私密对话，还是热闹的群组讨论，
@@ -105,50 +119,72 @@
       </p>
       <ul class="showcase-features">
         <li>
-          <span class="check-icon">✓</span>
-          好友管理 — 搜索、添加、备注、免打扰
+          <span class="check-icon">✓</span> 好友管理 — 搜索、添加、备注、免打扰
         </li>
         <li>
-          <span class="check-icon">✓</span>
-          文件分享 — 图片、文档一键发送
+          <span class="check-icon">✓</span> 文件分享 — 图片、文档一键发送
         </li>
         <li>
-          <span class="check-icon">✓</span>
-          消息收藏 — 重要信息永不丢失
+          <span class="check-icon">✓</span> 消息收藏 — 重要信息永不丢失
         </li>
         <li>
-          <span class="check-icon">✓</span>
-          消息撤回 — 支持已发消息召回
+          <span class="check-icon">✓</span> 消息撤回 — 支持已发消息召回
         </li>
         <li>
-          <span class="check-icon">✓</span>
-          多端同步 — 消息历史云端存储
+          <span class="check-icon">✓</span> 多端同步 — 消息历史云端存储
         </li>
       </ul>
     </div>
 
-    <div class="showcase-preview animate-on-scroll">
-      <div class="preview-window">
-        <div class="preview-header">
-          <span class="preview-dot red"></span>
-          <span class="preview-dot yellow"></span>
-          <span class="preview-dot green"></span>
-          <span class="preview-title">数字方舟 · 聊天</span>
+    <!-- Live Chat Mockup -->
+    <div class="chat-showcase anim-fade-up">
+      <div class="chat-showcase-header">
+        <span class="chat-showcase-dot red"></span>
+        <span class="chat-showcase-dot yellow"></span>
+        <span class="chat-showcase-dot green"></span>
+        <span class="chat-showcase-title">数字方舟 · 聊天</span>
+      </div>
+      <div class="chat-showcase-body">
+        <!-- Message 1: Received -->
+        <div class="chat-showcase-msg" style="animation-delay: 0.3s;">
+          <div class="chat-showcase-avatar receive"></div>
+          <div class="chat-showcase-bubble">
+            嘿！周末的露营计划准备好了吗？🏕️
+          </div>
         </div>
-        <div class="preview-chat">
-          <div class="preview-msg">
-            <div class="preview-avatar"></div>
-            <div class="preview-bubble">嘿，周末一起去露营怎么样？🏕️</div>
+
+        <!-- Message 2: Sent -->
+        <div class="chat-showcase-msg sent" style="animation-delay: 1s;">
+          <div class="chat-showcase-avatar sent-avatar"></div>
+          <div class="chat-showcase-bubble">
+            都准备好啦！我还整理了装备清单 📋
           </div>
-          <div class="preview-msg sent">
-            <div class="preview-avatar"></div>
-            <div class="preview-bubble">好主意！我来准备装备 ⛺</div>
+        </div>
+
+        <!-- File transfer -->
+        <div class="chat-showcase-file" style="animation-delay: 1.8s;">
+          <div class="chat-showcase-file-icon">📎</div>
+          <div class="chat-showcase-file-info">
+            <div class="chat-showcase-file-name">露营装备清单.pdf</div>
+            <div class="chat-showcase-file-size">2.4 MB</div>
+            <div class="chat-showcase-file-progress">
+              <div class="chat-showcase-file-bar"></div>
+            </div>
           </div>
-          <div class="preview-msg">
-            <div class="preview-avatar"></div>
-            <div class="preview-bubble preview-bubble-short">太棒了！期待～</div>
+        </div>
+
+        <!-- Typing indicator -->
+        <div class="chat-showcase-msg" style="animation-delay: 3s;">
+          <div class="chat-showcase-avatar receive"></div>
+          <div class="chat-showcase-bubble typing">
+            <span></span><span></span><span></span>
           </div>
-          <div class="preview-input-bar">输入消息…</div>
+        </div>
+
+        <!-- Online status -->
+        <div class="chat-showcase-status">
+          <span class="chat-showcase-status-dot"></span>
+          好友在线 · 正在输入...
         </div>
       </div>
     </div>
@@ -158,15 +194,15 @@
 <!-- ====== Trust Stats ====== -->
 <section class="trust">
   <div class="trust-grid">
-    <div>
+    <div class="anim-fade-up">
       <div class="trust-stat">实时</div>
       <div class="trust-label">WebSocket 毫秒级推送</div>
     </div>
-    <div>
+    <div class="anim-fade-up">
       <div class="trust-stat">安全</div>
       <div class="trust-label">JWT + 加密认证体系</div>
     </div>
-    <div>
+    <div class="anim-fade-up">
       <div class="trust-stat">优雅</div>
       <div class="trust-label">双主题 · 现代设计语言</div>
     </div>
@@ -175,19 +211,20 @@
 
 <!-- ====== Bottom CTA ====== -->
 <section class="cta-bottom">
-  <h2>准备好开始了吗？</h2>
-  <p>免费注册，即刻体验新一代聊天平台的全部功能。</p>
-  <a href="/static/login.html" class="btn-hero">
-    免费开始使用
-    <span class="btn-hero-arrow">→</span>
-  </a>
+  <h2 class="anim-fade-up">准备好开始了吗？</h2>
+  <p class="anim-fade-up">免费注册，即刻体验新一代聊天平台的全部功能。</p>
+  <div class="anim-fade-up">
+    <a href="/static/login.html" class="btn-hero">
+      免费开始使用
+      <span class="btn-hero-arrow">→</span>
+    </a>
+  </div>
 </section>
 
 <!-- ====== Footer ====== -->
 <footer class="footer">
   <div class="footer-brand">
-    <span>💬</span>
-    <span>数字方舟</span>
+    <span>💬</span> 数字方舟
   </div>
   <div class="footer-links">
     <a href="#features">功能特性</a>
@@ -197,41 +234,6 @@
   <p>&copy; 2026 数字方舟 · 让沟通更有温度</p>
 </footer>
 
-<!-- ====== Scroll Animation Script ====== -->
-<script>
-  // Intersection Observer for scroll-triggered animations
-  const observerOptions = {
-    threshold: 0.15,
-    rootMargin: '0px 0px -50px 0px'
-  };
-
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-        observer.unobserve(entry.target);
-      }
-    });
-  }, observerOptions);
-
-  document.querySelectorAll('.animate-on-scroll').forEach(el => {
-    observer.observe(el);
-  });
-
-  // Navbar scroll effect
-  const navbar = document.getElementById('navbar');
-  let lastScroll = 0;
-
-  window.addEventListener('scroll', () => {
-    const currentScroll = window.pageYOffset;
-    if (currentScroll > 50) {
-      navbar.classList.add('scrolled');
-    } else {
-      navbar.classList.remove('scrolled');
-    }
-    lastScroll = currentScroll;
-  }, { passive: true });
-</script>
-
+<script src="/static/js/landing.js"></script>
 </body>
 </html>
