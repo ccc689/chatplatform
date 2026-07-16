@@ -215,6 +215,12 @@ button { cursor:pointer; background:none; color:inherit; }
   transition:all var(--fast) var(--ease);
 }
 .sidebar-top .logout-link:hover { color:var(--unread); background:rgba(239,68,68,0.06); }
+.logout-icon {
+  font-size:16px; color:var(--text-tertiary); cursor:pointer;
+  padding:6px 10px; border-radius:var(--radius-sm);
+  transition:all var(--fast) var(--ease);
+}
+.logout-icon:hover { color:var(--unread); background:rgba(239,68,68,0.06); }
 
 /* 搜索 */
 .sidebar-search { padding:0 14px 12px; position:relative; }
@@ -525,60 +531,98 @@ button { cursor:pointer; background:none; color:inherit; }
 .msg-read-status.clickable:hover { color:var(--wechat-green); }
 
 /* ============================================
-   五、底部输入栏
+   五、底部输入栏（v5.1 放大版）
    ============================================ */
 .chat-input-bar {
-  padding:12px 20px 16px;
+  padding:16px 20px 12px;
   background:var(--bg-white);
   border-top:1px solid var(--border-light);
+  position:relative;
 }
-.chat-input-row { display:flex; align-items:flex-end; gap:8px; }
+/* 主行：输入框+发送按钮 */
+.chat-input-main {
+  display:flex; align-items:flex-end; gap:10px;
+}
+.chat-input-main .msg-textarea {
+  flex:1; min-height:90px; max-height:200px; padding:14px 18px;
+  border-radius:16px; background:var(--bg-input);
+  font-size:15px; color:var(--text-primary); resize:none;
+  line-height:1.6; border:1.5px solid transparent;
+  transition:all var(--fast) var(--ease);
+}
+.chat-input-main .msg-textarea::placeholder { color:var(--text-tertiary); }
+.chat-input-main .msg-textarea:focus {
+  background:var(--bg-white); border-color:var(--wechat-green);
+  box-shadow:0 0 0 3px var(--wechat-green-glow);
+}
+.chat-input-main .send-btn {
+  padding:10px 26px; background:var(--wechat-green); color:#fff;
+  border-radius:var(--radius); font-size:15px; font-weight:550; align-self:flex-end;
+  transition:all var(--fast) var(--ease); flex-shrink:0;
+  box-shadow:0 2px 6px rgba(34,197,94,0.15); border:none;
+  height:42px;
+}
+.chat-input-main .send-btn:hover {
+  background:var(--wechat-green-hover); transform:scale(1.03);
+  box-shadow:0 4px 14px rgba(34,197,94,0.25);
+}
+.chat-input-main .send-btn:active { transform:scale(0.97); }
+
+/* 工具行：表情+附件按钮放在输入框左下 */
+.chat-input-tools {
+  display:flex; align-items:center; gap:4px;
+  padding:4px 0 0 4px; position:relative;
+}
+.chat-input-tools .tool-btn {
+  font-size:20px; color:var(--text-secondary); padding:6px 8px;
+  border-radius:var(--radius-sm);
+  transition:all var(--fast) var(--ease); flex-shrink:0;
+  cursor:pointer; background:none; border:none;
+}
+.chat-input-tools .tool-btn:hover { color:var(--wechat-green); background:var(--bg-hover); }
+
+/* 附件下拉 */
+.attach-dropdown {
+  display:none; position:absolute; left:60px; bottom:44px;
+  background:var(--bg-white); border-radius:var(--radius);
+  box-shadow:var(--shadow-lg); z-index:10; min-width:140px;
+  border:1px solid var(--border-light); padding:4px 0;
+}
+.attach-dropdown.visible { display:block; animation:fadeIn 0.12s var(--ease); }
+.attach-dropdown-item {
+  padding:10px 16px; font-size:14px; color:var(--text-primary);
+  cursor:pointer; transition:background var(--fast) var(--ease);
+}
+.attach-dropdown-item:hover { background:var(--bg-hover); }
+
+/* 兼容旧的 tool-btn 引用（顶栏等） */
 .chat-input-row .tool-btn {
   font-size:22px; color:var(--text-secondary); padding:8px;
   border-radius:var(--radius-sm);
   transition:all var(--fast) var(--ease); flex-shrink:0;
 }
 .chat-input-row .tool-btn:hover { color:var(--wechat-green); }
-.chat-input-row .msg-textarea {
-  flex:1; min-height:40px; max-height:120px; padding:10px 14px;
-  border-radius:var(--radius); background:var(--bg-input);
-  font-size:14px; color:var(--text-primary); resize:none;
-  line-height:1.5; border:1.5px solid transparent;
-  transition:all var(--fast) var(--ease);
-}
-.chat-input-row .msg-textarea::placeholder { color:var(--text-tertiary); }
-.chat-input-row .msg-textarea:focus {
-  background:var(--bg-white); border-color:var(--wechat-green);
-  box-shadow:0 0 0 3px var(--wechat-green-glow);
-}
-.chat-input-row .send-btn {
-  padding:8px 22px; background:var(--wechat-green); color:#fff;
-  border-radius:var(--radius-sm); font-size:14px; font-weight:550;
-  transition:all var(--fast) var(--ease); flex-shrink:0;
-  box-shadow:0 2px 6px rgba(34,197,94,0.15);
-}
-.chat-input-row .send-btn:hover {
-  background:var(--wechat-green-hover);
-  transform:scale(1.03);
-  box-shadow:0 4px 14px rgba(34,197,94,0.25);
-}
-.chat-input-row .send-btn:active { transform:scale(0.97); }
 
 /* 表情面板 */
 .emoji-panel {
-  position:absolute; bottom:76px; left:50%; transform:translateX(-50%);
+  position:absolute; bottom:48px; left:4px;
   background:var(--bg-white); border-radius:var(--radius);
-  padding:10px; display:none; flex-wrap:wrap; gap:4px;
-  box-shadow:var(--shadow-lg); z-index:10; width:270px;
-  border:1px solid var(--border-light);
+  padding:8px; display:none; flex-wrap:wrap; gap:3px;
+  box-shadow:var(--shadow-lg); z-index:10; width:310px; max-height:280px;
+  overflow-y:auto; border:1px solid var(--border-light);
 }
 .emoji-panel.visible { display:flex; animation:fadeInUp 0.15s var(--ease); }
 .emoji-panel .emoji-item {
-  font-size:26px; padding:5px; cursor:pointer; border-radius:8px;
+  font-size:22px; padding:4px; cursor:pointer; border-radius:6px;
   transition:all var(--fast) var(--ease);
-  width:34px; height:34px; display:flex; align-items:center; justify-content:center;
+  width:30px; height:30px; display:flex; align-items:center; justify-content:center;
 }
 .emoji-panel .emoji-item:hover { background:var(--bg-hover); transform:scale(1.15); }
+.emoji-add-btn {
+  background:var(--green-light); color:var(--wechat-green);
+  font-weight:bold; font-size:18px !important;
+}
+.emoji-add-btn:hover { background:var(--wechat-green-soft) !important; }
 
 /* ============================================
    六、右键菜单

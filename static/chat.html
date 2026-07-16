@@ -268,7 +268,7 @@
         <div class="user-avatar" id="myAvatar"><img id="sidebarAvatarImg" src="" style="display:none;width:100%;height:100%;border-radius:50%;object-fit:cover;"><span id="sidebarAvatarFallback">😊</span><span class="online-dot" id="sidebarOnlineDot"></span></div>
         <span class="user-name" id="myUsername">加载中</span>
         <span class="self-status" id="myStatusDisplay"></span>
-      </div><span class="logout-link" id="logoutBtn">退出</span>
+      </div><span class="logout-icon" id="logoutBtn" title="退出登录">⏻</span>
     </div>
     <div class="sidebar-search"><div class="search-box"><span class="search-icon-inside">🔍</span><input type="text" placeholder="搜索" id="convSearchInput" oninput="onSearchConversations()" onfocus="onSearchConversations()"></div><div class="search-dropdown" id="searchDropdown"></div></div>
     <div class="conversation-list" id="conversationList">
@@ -285,7 +285,34 @@
         <div class="plus-menu-wrapper" id="plusMenuWrapper"><button class="plus-btn" id="plusBtn">+</button><span class="plus-badge" id="plusBadge"></span><div class="plus-dropdown" id="plusDropdown"><div class="plus-dropdown-item" onclick="showAddFriendModal()"><span class="plus-dropdown-icon">👤</span><span>添加好友</span></div><div class="plus-dropdown-item" onclick="showCreateGroupModal()"><span class="plus-dropdown-icon">👥</span><span>发起群聊</span></div></div></div></div>
     </div>
     <div class="message-list" id="messageList"><div class="message-empty" id="messageEmpty"><div class="empty-icon">💬</div><div class="empty-text">选择左侧会话开始聊天</div><div class="empty-sub">好友消息、群聊消息都在这里<br>开启你的数字方舟之旅 ✨</div></div></div>
-    <div class="chat-input-bar" id="chatInputBar" style="display:none;"><div class="chat-input-row"><button class="tool-btn" id="emojiBtn" title="表情">😊</button><textarea class="msg-textarea" id="msgInput" rows="1" placeholder="输入消息…" onkeydown="onInputKeydown(event)" oninput="autoResizeTextarea()"></textarea><input type="file" id="imageInput" style="display:none" accept="image/jpeg,image/png" onchange="onFileSelect(event,1)"><button class="tool-btn" onclick="document.getElementById('imageInput').click()" title="发送图片">🖼️</button><input type="file" id="fileInput" style="display:none" accept=".pdf,.docx,.xlsx,.pptx" onchange="onFileSelect(event,2)"><button class="tool-btn" onclick="document.getElementById('fileInput').click()" title="发送文件">📎</button><button class="send-btn" id="sendBtn" onclick="sendCurrentChatMessage()">发送</button></div><div class="emoji-panel" id="emojiPanel"></div></div>
+    <div class="chat-input-bar" id="chatInputBar" style="display:none;">
+      <div class="chat-input-main">
+        <textarea class="msg-textarea" id="msgInput" rows="3" placeholder="输入消息…" onkeydown="onInputKeydown(event)" oninput="autoResizeTextarea()"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendCurrentChatMessage()">发送</button>
+      </div>
+      <div class="chat-input-tools">
+        <button class="tool-btn" id="emojiBtn" title="表情">😊</button>
+        <input type="file" id="imageInput" style="display:none" accept="image/jpeg,image/png" onchange="onFileSelect(event,1)">
+        <input type="file" id="fileInput" style="display:none" accept=".pdf,.docx,.xlsx,.pptx" onchange="onFileSelect(event,2)">
+        <button class="tool-btn" id="attachBtn" title="发送图片或文件" onclick="showAttachOptions()">📎</button>
+        <div class="attach-dropdown" id="attachDropdown">
+          <div class="attach-dropdown-item" onclick="document.getElementById('imageInput').click();document.getElementById('attachDropdown').classList.remove('visible');">🖼️ 发送图片</div>
+          <div class="attach-dropdown-item" onclick="document.getElementById('fileInput').click();document.getElementById('attachDropdown').classList.remove('visible');">📁 发送文件</div>
+        </div>
+      </div>
+      <div class="emoji-panel" id="emojiPanel"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 退出确认弹窗 ====== -->
+<div class="modal-overlay" id="logoutConfirmModal">
+  <div class="modal-box" style="width:320px;text-align:center;">
+    <p style="font-size:15px;color:var(--text-primary);margin-bottom:24px;line-height:1.6;">确定要退出登录吗？</p>
+    <div style="display:flex;gap:10px;">
+      <button class="btn-cancel" onclick="closeModal('logoutConfirmModal')" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border-light);background:var(--bg-input);color:var(--text-primary);cursor:pointer;font-size:14px;">取消</button>
+      <button class="btn-confirm" onclick="confirmLogout()" style="flex:1;padding:10px;border-radius:8px;border:none;background:var(--wechat-green);color:#fff;cursor:pointer;font-size:14px;font-weight:550;">确定退出</button>
+    </div>
   </div>
 </div>
 

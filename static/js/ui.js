@@ -77,12 +77,14 @@ window.addEventListener("DOMContentLoaded",function(){
   buildEmojiPanel();bindPlusMenu();bindGlobalClicks();bindLogout();
   loadMyProfile();loadConversations();loadFriends();loadGroups();loadApplyBadge();updateMyStatusDisplay();
 });
-function bindLogout(){$("logoutBtn").onclick=function(){if(confirm("确定退出？"))logout();};}
+function bindLogout(){$("logoutBtn").onclick=function(){$("logoutConfirmModal").classList.add("visible");};}
+function confirmLogout(){closeModal("logoutConfirmModal");logout();}
 function bindPlusMenu(){var b=$("plusBtn"),d=$("plusDropdown");if(!b||!d)return;b.onclick=function(e){e.stopPropagation();d.classList.toggle("visible");};}
 function bindGlobalClicks(){
-  document.addEventListener("click",function(e){var t=e.target,w=$("plusMenuWrapper");if(w&&!w.contains(t)){var d=$("plusDropdown");if(d)d.classList.remove("visible");}[$("convContextMenu"),$("msgContextMenu")].forEach(function(m){if(m&&!m.contains(t))m.classList.remove("visible");});var sd=$("searchDropdown"),si=$("convSearchInput");if(sd&&!sd.contains(t)&&si&&t!==si)sd.classList.remove("visible");});
+  document.addEventListener("click",function(e){var t=e.target,w=$("plusMenuWrapper");if(w&&!w.contains(t)){var d=$("plusDropdown");if(d)d.classList.remove("visible");}[$("convContextMenu"),$("msgContextMenu")].forEach(function(m){if(m&&!m.contains(t))m.classList.remove("visible");});var sd=$("searchDropdown"),si=$("convSearchInput");if(sd&&!sd.contains(t)&&si&&t!==si)sd.classList.remove("visible");var ad=$("attachDropdown");if(ad&&!ad.contains(t)&&t.id!=="attachBtn")ad.classList.remove("visible");});
   document.addEventListener("click",function(e){if(e.target.classList.contains("modal-overlay"))e.target.classList.remove("visible");});
 }
+function showAttachOptions(){var d=$("attachDropdown");if(d){d.classList.toggle("visible");}}
 
 /* ==================== 个人信息 ==================== */
 async function loadMyProfile(){try{var r=await fetch("/user/profile?token="+getToken()),d=await r.json();if(d.code===200){if(d.data.user_id){myUserId=d.data.user_id;localStorage.setItem("my_user_id",myUserId);}if(d.data.avatar){myAvatar=d.data.avatar;localStorage.setItem("my_avatar",myAvatar);}if(d.data.username){myUsername=d.data.username;localStorage.setItem("my_username",myUsername);$("myUsername").textContent=myUsername;}if(d.data.status_message!==undefined){myStatus=d.data.status_message;localStorage.setItem("my_status",myStatus);}refreshMyAvatar();}}catch(e){}}
@@ -759,7 +761,17 @@ async function leaveCurrentGroup(){if(!currentChat||currentChat.type!=="group")r
 function resetChatView(){$("chatTitle").textContent="欢迎";$("chatSubtitle").textContent="";$("messageList").innerHTML='<div class="message-empty" id="messageEmpty"><div class="empty-icon">💬</div><div class="empty-text">选择左侧会话开始聊天</div><div class="empty-sub">好友消息、群聊消息都在这里<br>开启你的数字方舟之旅 ✨</div></div>';$("messageEmpty").style.display="block";$("chatInputBar").style.display="none";$("topbarActions").innerHTML='<div class="theme-toggle" id="themeToggle" onclick="toggleTheme()">'+(getTheme()==="dark"?"☀️":"🌙")+'</div><div class="plus-menu-wrapper" id="plusMenuWrapper"><button class="plus-btn" id="plusBtn">+</button><span class="plus-badge" id="plusBadge"></span><div class="plus-dropdown" id="plusDropdown"><div class="plus-dropdown-item" onclick="showAddFriendModal()"><span class="plus-dropdown-icon">👤</span><span>添加好友</span></div><div class="plus-dropdown-item" onclick="showCreateGroupModal()"><span class="plus-dropdown-icon">👥</span><span>发起群聊</span></div></div></div>';bindPlusMenu();loadApplyBadge();}
 
 /* ==================== 表情 ==================== */
-function buildEmojiPanel(){var p=$("emojiPanel");EMOJI_LIST.forEach(function(i){var s=document.createElement("span");s.className="emoji-item";s.textContent=i.emoji;s.title=i.mark;s.onclick=function(){$("msgInput").value+=i.mark;p.classList.remove("visible");};p.appendChild(s);});}
+function buildEmojiPanel(){var p=$("emojiPanel");p.innerHTML="";
+  // "+" custom emoji button at position 1
+  var addBtn=document.createElement("span");addBtn.className="emoji-item emoji-add-btn";addBtn.textContent="+";addBtn.title="添加自定义表情";addBtn.onclick=function(e){e.stopPropagation();addCustomEmoji();};p.appendChild(addBtn);
+  // All system emojis
+  var list=buildEmojiList();var added=new Set();
+  list.forEach(function(item){if(added.has(item.emoji))return;added.add(item.emoji);
+    var s=document.createElement("span");s.className="emoji-item";s.textContent=item.emoji;s.title=item.mark;
+    s.onclick=function(){$("msgInput").value+=item.mark;p.classList.remove("visible");};p.appendChild(s);
+  });
+}
+function addCustomEmoji(){var emoji=prompt("请输入表情符号（可直接粘贴 emoji）：");if(!emoji||!emoji.trim())return;emoji=emoji.trim();var mark="[自定义]";var custom=getCustomEmojis();custom.push({mark:mark,emoji:emoji});saveCustomEmojis(custom);buildEmojiPanel();}
 document.addEventListener("click",function(e){var p=$("emojiPanel"),b=$("emojiBtn");if(!p||!b)return;if(e.target===b||b.contains(e.target)){p.classList.toggle("visible");return;}if(!p.contains(e.target))p.classList.remove("visible");});
 
 /* ==================== 弹窗 ==================== */
