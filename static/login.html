@@ -11,27 +11,215 @@
 
 <div class="auth-page">
 
-  <!-- ====== Left Brand Panel ====== -->
-  <div class="auth-brand">
-    <div class="auth-brand-content">
-      <div class="auth-brand-logo">💬</div>
-      <h1>数字方舟</h1>
-      <p>安全、快速、优雅的现代聊天体验</p>
+  <!-- ====== Left Panel — Digital Lifeforms ====== -->
+  <div class="auth-brand" id="authBrand">
+    <!-- Background orbs -->
+    <div class="auth-brand-orb auth-brand-orb-1"></div>
+    <div class="auth-brand-orb auth-brand-orb-2"></div>
 
-      <div class="auth-brand-features">
-        <div class="auth-brand-feature">
-          <span class="bf-icon purple">⚡</span>
-          毫秒级实时消息推送
-        </div>
-        <div class="auth-brand-feature">
-          <span class="bf-icon blue">🔐</span>
-          JWT 安全认证体系
-        </div>
-        <div class="auth-brand-feature">
-          <span class="bf-icon green">👥</span>
-          私聊 · 群聊 · 文件分享
-        </div>
+    <!-- Grid texture -->
+    <div class="auth-brand-grid"></div>
+
+    <!-- Particle field (CSS only decoration) -->
+    <div class="auth-particles">
+      <span class="ap ap-1"></span><span class="ap ap-2"></span><span class="ap ap-3"></span>
+      <span class="ap ap-4"></span><span class="ap ap-5"></span><span class="ap ap-6"></span>
+    </div>
+
+    <!-- Brand title -->
+    <div class="auth-brand-header">
+      <div class="auth-brand-glow"></div>
+      <h1>数字方舟</h1>
+      <p>你的 AI 智能社交伙伴</p>
+    </div>
+
+    <!-- Character Row -->
+    <div class="characters-row">
+
+      <!-- ====== Nova — 数据守护者 (Left, Purple) ====== -->
+      <div class="char-container" data-char="nova">
+        <svg viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="novaGlow" cx="50%" cy="40%" r="50%">
+              <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.5"/>
+              <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="novaBody" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#8b5cf6"/>
+              <stop offset="100%" stop-color="#7c3aed"/>
+            </linearGradient>
+            <linearGradient id="novaIris" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#c4b5fd"/>
+              <stop offset="100%" stop-color="#8b5cf6"/>
+            </linearGradient>
+            <filter id="novaBlur"><feGaussianBlur stdDeviation="12"/></filter>
+            <filter id="novaInner"><feGaussianBlur stdDeviation="3"/></filter>
+          </defs>
+          <!-- Glow aura -->
+          <ellipse cx="100" cy="120" rx="80" ry="90" fill="url(#novaGlow)" filter="url(#novaBlur)"/>
+          <!-- Body — hexagonal -->
+          <path class="char-body" d="M 100 30 L 160 65 L 160 145 L 100 180 L 40 145 L 40 65 Z" fill="url(#novaBody)" opacity="0.9"/>
+          <!-- Body border glow -->
+          <path d="M 100 30 L 160 65 L 160 145 L 100 180 L 40 145 L 40 65 Z" fill="none" stroke="rgba(196,181,253,0.4)" stroke-width="1.5"/>
+          <!-- Chest detail -->
+          <path d="M 85 100 L 115 100 L 125 140 L 75 140 Z" fill="rgba(255,255,255,0.08)" rx="4"/>
+          <!-- Ears -->
+          <polygon points="40,65 20,55 42,90" fill="#7c3aed"/>
+          <polygon points="160,65 180,55 158,90" fill="#7c3aed"/>
+          <!-- Eyes group -->
+          <g>
+            <!-- Left eye -->
+            <ellipse class="eye-left" cx="78" cy="88" rx="16" ry="18" fill="white" opacity="0.92"/>
+            <ellipse cx="78" cy="88" rx="11" ry="13" fill="url(#novaIris)"/>
+            <circle class="pupil-left" cx="78" cy="88" r="6.5" fill="#1e1b4b"/>
+            <ellipse cx="75" cy="84" r="2.5" fill="white" opacity="0.7"/>
+            <ellipse class="eyelid-top-left" cx="78" cy="75" rx="18" ry="9" fill="#0f0f1a" opacity="0"/>
+            <ellipse class="eyelid-bot-left" cx="78" cy="103" rx="18" ry="7" fill="#0f0f1a" opacity="0"/>
+          </g>
+          <g>
+            <!-- Right eye -->
+            <ellipse class="eye-right" cx="122" cy="88" rx="16" ry="18" fill="white" opacity="0.92"/>
+            <ellipse cx="122" cy="88" rx="11" ry="13" fill="url(#novaIris)"/>
+            <circle class="pupil-right" cx="122" cy="88" r="6.5" fill="#1e1b4b"/>
+            <ellipse cx="119" cy="84" r="2.5" fill="white" opacity="0.7"/>
+            <ellipse class="eyelid-top-right" cx="122" cy="75" rx="18" ry="9" fill="#0f0f1a" opacity="0"/>
+            <ellipse class="eyelid-bot-right" cx="122" cy="103" rx="18" ry="7" fill="#0f0f1a" opacity="0"/>
+          </g>
+          <!-- Hands -->
+          <ellipse class="hand-left" cx="30" cy="100" rx="18" ry="14" fill="#7c3aed" opacity="0" transform="translate(0,0)"/>
+          <ellipse class="hand-right" cx="170" cy="100" rx="18" ry="14" fill="#7c3aed" opacity="0" transform="translate(0,0)"/>
+          <!-- Mouth -->
+          <path class="char-mouth" d="M 90 120 Q 100 123 110 120" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"/>
+          <!-- Name label -->
+          <text x="100" y="208" text-anchor="middle" fill="rgba(196,181,253,0.6)" font-size="12" font-family="var(--auth-font)" letter-spacing="0.08em">NOVA</text>
+        </svg>
       </div>
+
+      <!-- ====== Ark — 核心AI (Center, Blue/Indigo) ====== -->
+      <div class="char-container char-container-main" data-char="ark">
+        <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="arkGlow" cx="50%" cy="40%" r="50%">
+              <stop offset="0%" stop-color="#818cf8" stop-opacity="0.45"/>
+              <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="arkBody" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#6366f1"/>
+              <stop offset="50%" stop-color="#4f46e5"/>
+              <stop offset="100%" stop-color="#3b82f6"/>
+            </linearGradient>
+            <linearGradient id="arkIris" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#a5b4fc"/>
+              <stop offset="100%" stop-color="#6366f1"/>
+            </linearGradient>
+            <filter id="arkBlur"><feGaussianBlur stdDeviation="16"/></filter>
+            <filter id="arkInner"><feGaussianBlur stdDeviation="4"/></filter>
+          </defs>
+          <!-- Glow aura -->
+          <ellipse cx="100" cy="125" rx="90" ry="100" fill="url(#arkGlow)" filter="url(#arkBlur)"/>
+          <!-- Body — rounded rectangle -->
+          <rect class="char-body" x="30" y="45" width="140" height="150" rx="70" fill="url(#arkBody)" opacity="0.92"/>
+          <!-- Body border glow -->
+          <rect x="30" y="45" width="140" height="150" rx="70" fill="none" stroke="rgba(165,180,252,0.35)" stroke-width="1.5"/>
+          <!-- Antenna -->
+          <line x1="100" y1="45" x2="100" y2="18" stroke="#818cf8" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="100" cy="16" r="7" fill="#a5b4fc" opacity="0.9"/>
+          <circle cx="100" cy="16" r="3.5" fill="white" opacity="0.7"/>
+          <!-- Core glow on chest -->
+          <circle cx="100" cy="155" r="18" fill="rgba(255,255,255,0.08)"/>
+          <circle cx="100" cy="155" r="10" fill="rgba(255,255,255,0.12)"/>
+          <circle cx="100" cy="155" r="4" fill="rgba(255,255,255,0.2)"/>
+          <!-- Eyes group -->
+          <g>
+            <ellipse class="eye-left" cx="72" cy="95" rx="19" ry="21" fill="white" opacity="0.92"/>
+            <ellipse cx="72" cy="95" rx="13" ry="15" fill="url(#arkIris)"/>
+            <circle class="pupil-left" cx="72" cy="95" r="7.5" fill="#0f172a"/>
+            <ellipse cx="68" cy="90" r="3" fill="white" opacity="0.7"/>
+            <ellipse class="eyelid-top-left" cx="72" cy="80" rx="21" ry="10" fill="#0f0f1a" opacity="0"/>
+            <ellipse class="eyelid-bot-left" cx="72" cy="112" rx="21" ry="8" fill="#0f0f1a" opacity="0"/>
+          </g>
+          <g>
+            <ellipse class="eye-right" cx="128" cy="95" rx="19" ry="21" fill="white" opacity="0.92"/>
+            <ellipse cx="128" cy="95" rx="13" ry="15" fill="url(#arkIris)"/>
+            <circle class="pupil-right" cx="128" cy="95" r="7.5" fill="#0f172a"/>
+            <ellipse cx="124" cy="90" r="3" fill="white" opacity="0.7"/>
+            <ellipse class="eyelid-top-right" cx="128" cy="80" rx="21" ry="10" fill="#0f0f1a" opacity="0"/>
+            <ellipse class="eyelid-bot-right" cx="128" cy="112" rx="21" ry="8" fill="#0f0f1a" opacity="0"/>
+          </g>
+          <!-- Hands -->
+          <ellipse class="hand-left" cx="24" cy="108" rx="20" ry="16" fill="#4f46e5" opacity="0" transform="translate(0,0)"/>
+          <ellipse class="hand-right" cx="176" cy="108" rx="20" ry="16" fill="#4f46e5" opacity="0" transform="translate(0,0)"/>
+          <!-- Mouth -->
+          <path class="char-mouth" d="M 85 128 Q 100 132 115 128" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2.5" stroke-linecap="round"/>
+          <!-- Name label -->
+          <text x="100" y="225" text-anchor="middle" fill="rgba(165,180,252,0.55)" font-size="13" font-family="var(--auth-font)" font-weight="600" letter-spacing="0.1em">ARK</text>
+        </svg>
+      </div>
+
+      <!-- ====== Pixel — 消息精灵 (Right, Cyan/Teal) ====== -->
+      <div class="char-container" data-char="pixel">
+        <svg viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="pixelGlow" cx="50%" cy="40%" r="50%">
+              <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.4"/>
+              <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="pixelBody" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#06b6d4"/>
+              <stop offset="100%" stop-color="#10b981"/>
+            </linearGradient>
+            <linearGradient id="pixelIris" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#67e8f9"/>
+              <stop offset="100%" stop-color="#06b6d4"/>
+            </linearGradient>
+            <filter id="pixelBlur"><feGaussianBlur stdDeviation="11"/></filter>
+          </defs>
+          <!-- Glow aura -->
+          <ellipse cx="100" cy="120" rx="75" ry="85" fill="url(#pixelGlow)" filter="url(#pixelBlur)"/>
+          <!-- Body — smaller round -->
+          <ellipse class="char-body" cx="100" cy="115" rx="58" ry="62" fill="url(#pixelBody)" opacity="0.9"/>
+          <!-- Body border -->
+          <ellipse cx="100" cy="115" rx="58" ry="62" fill="none" stroke="rgba(103,232,249,0.4)" stroke-width="1.5"/>
+          <!-- Tufts/ears -->
+          <ellipse cx="68" cy="60" rx="16" ry="22" fill="#06b6d4" transform="rotate(-20,68,60)"/>
+          <ellipse cx="132" cy="60" rx="16" ry="22" fill="#06b6d4" transform="rotate(20,132,60)"/>
+          <!-- Belly detail -->
+          <ellipse cx="100" cy="135" rx="28" ry="22" fill="rgba(255,255,255,0.06)"/>
+          <!-- Eyes group (bigger, cuter) -->
+          <g>
+            <ellipse class="eye-left" cx="76" cy="100" rx="18" ry="20" fill="white" opacity="0.92"/>
+            <ellipse cx="76" cy="100" rx="13" ry="15" fill="url(#pixelIris)"/>
+            <circle class="pupil-left" cx="76" cy="100" r="7.5" fill="#042f2e"/>
+            <ellipse cx="72" cy="95" r="3" fill="white" opacity="0.7"/>
+            <ellipse class="eyelid-top-left" cx="76" cy="85" rx="20" ry="9" fill="#0f0f1a" opacity="0"/>
+            <ellipse class="eyelid-bot-left" cx="76" cy="117" rx="20" ry="7" fill="#0f0f1a" opacity="0"/>
+          </g>
+          <g>
+            <ellipse class="eye-right" cx="124" cy="100" rx="18" ry="20" fill="white" opacity="0.92"/>
+            <ellipse cx="124" cy="100" rx="13" ry="15" fill="url(#pixelIris)"/>
+            <circle class="pupil-right" cx="124" cy="100" r="7.5" fill="#042f2e"/>
+            <ellipse cx="120" cy="95" r="3" fill="white" opacity="0.7"/>
+            <ellipse class="eyelid-top-right" cx="124" cy="85" rx="20" ry="9" fill="#0f0f1a" opacity="0"/>
+            <ellipse class="eyelid-bot-right" cx="124" cy="117" rx="20" ry="7" fill="#0f0f1a" opacity="0"/>
+          </g>
+          <!-- Hands (smaller) -->
+          <ellipse class="hand-left" cx="40" cy="112" rx="15" ry="12" fill="#0891b2" opacity="0" transform="translate(0,0)"/>
+          <ellipse class="hand-right" cx="160" cy="112" rx="15" ry="12" fill="#0891b2" opacity="0" transform="translate(0,0)"/>
+          <!-- Mouth (wider smile) -->
+          <path class="char-mouth" d="M 88 125 Q 100 134 112 125" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2.5" stroke-linecap="round"/>
+          <!-- Blush dots -->
+          <ellipse cx="60" cy="112" rx="6" ry="4" fill="rgba(255,255,255,0.12)"/>
+          <ellipse cx="140" cy="112" rx="6" ry="4" fill="rgba(255,255,255,0.12)"/>
+          <!-- Name label -->
+          <text x="100" y="205" text-anchor="middle" fill="rgba(103,232,249,0.55)" font-size="12" font-family="var(--auth-font)" letter-spacing="0.08em">PIXEL</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Status indicator -->
+    <div class="char-status" id="charStatus">
+      <span class="char-status-dot"></span>
+      <span class="char-status-text">数字生命体在线</span>
     </div>
 
     <a href="/" class="back-to-home">← 返回首页</a>
@@ -43,7 +231,7 @@
 
       <!-- Mobile Brand -->
       <div class="auth-mobile-brand">
-        <div class="auth-brand-logo">💬</div>
+        <div class="auth-brand-logo-mobile">💬</div>
         <h2>欢迎来到数字方舟</h2>
       </div>
 
@@ -103,7 +291,6 @@
             </div>
           </div>
 
-          <!-- Password Strength -->
           <div class="pw-strength" id="pwStrength">
             <span class="pw-strength-bar" id="bar1"></span>
             <span class="pw-strength-bar" id="bar2"></span>
@@ -139,6 +326,7 @@
 </div>
 
 <script src="/static/js/api.js"></script>
+<script src="/static/js/auth-interact.js"></script>
 <script>
   // If already logged in, go directly to chat
   if (isLoggedIn()) { window.location.href = "/static/chat.html"; }
@@ -173,7 +361,6 @@
     const v = document.getElementById(inputId).value;
     document.getElementById(btnId).classList.toggle('visible', v.length > 0);
   }
-
   function clearInput(inputId, btnId) {
     document.getElementById(inputId).value = '';
     document.getElementById(btnId).classList.remove('visible');
@@ -186,63 +373,29 @@
     const pw = document.getElementById('regPass').value;
     const bars = [document.getElementById('bar1'), document.getElementById('bar2'), document.getElementById('bar3')];
     bars.forEach(b => b.className = 'pw-strength-bar');
-
     if (pw.length === 0) return;
-
     let score = 0;
     if (pw.length >= 6) score++;
     if (pw.length >= 10) score++;
     if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
     if (/\d/.test(pw)) score++;
     if (/[^A-Za-z0-9]/.test(pw)) score++;
-
-    if (score <= 1) {
-      bars[0].className = 'pw-strength-bar weak';
-      bars[1].className = 'pw-strength-bar weak';
-    } else if (score <= 3) {
-      bars[0].className = 'pw-strength-bar medium';
-      bars[1].className = 'pw-strength-bar medium';
-    } else {
-      bars[0].className = 'pw-strength-bar strong';
-      bars[1].className = 'pw-strength-bar strong';
-      bars[2].className = 'pw-strength-bar strong';
-    }
+    if (score <= 1) { bars[0].className = 'pw-strength-bar weak'; bars[1].className = 'pw-strength-bar weak'; }
+    else if (score <= 3) { bars[0].className = 'pw-strength-bar medium'; bars[1].className = 'pw-strength-bar medium'; }
+    else { bars[0].className = 'pw-strength-bar strong'; bars[1].className = 'pw-strength-bar strong'; bars[2].className = 'pw-strength-bar strong'; }
   }
-
-  function onRegPassInput() {
-    toggleClearBtn('regPass', 'regPassClearBtn');
-    checkPwStrength();
-    checkPwMatch();
-  }
-
-  // ====== Confirm Password Match ======
+  function onRegPassInput() { toggleClearBtn('regPass', 'regPassClearBtn'); checkPwStrength(); checkPwMatch(); }
   function checkPwMatch() {
-    const p1 = document.getElementById('regPass').value;
-    const p2 = document.getElementById('regPass2').value;
+    const p1 = document.getElementById('regPass').value, p2 = document.getElementById('regPass2').value;
     const el = document.getElementById('matchMsg');
     if (p2.length === 0) { el.innerHTML = ''; return; }
-    if (p1 === p2) {
-      el.innerHTML = '<span class="pw-match-ok">✓ 密码一致</span>';
-    } else {
-      el.innerHTML = '<span class="pw-match-err">✗ 密码不一致</span>';
-    }
+    el.innerHTML = p1 === p2 ? '<span class="pw-match-ok">✓ 密码一致</span>' : '<span class="pw-match-err">✗ 密码不一致</span>';
   }
 
   // ====== Error Modal ======
-  function showPwdError() {
-    document.getElementById('pwdErrorModal').classList.add('visible');
-  }
-
-  function closePwdError() {
-    document.getElementById('pwdErrorModal').classList.remove('visible');
-    document.getElementById('loginPass').value = '';
-    document.getElementById('loginPass').focus();
-  }
-
-  // Click overlay to close
-  document.addEventListener('click', function(e) {
-    if (e.target.id === 'pwdErrorModal') closePwdError();
-  });
+  function showPwdError() { document.getElementById('pwdErrorModal').classList.add('visible'); }
+  function closePwdError() { document.getElementById('pwdErrorModal').classList.remove('visible'); document.getElementById('loginPass').value = ''; document.getElementById('loginPass').focus(); }
+  document.addEventListener('click', function(e) { if (e.target.id === 'pwdErrorModal') closePwdError(); });
 
   // ====== Handle Login ======
   async function handleLogin(e) {
@@ -250,28 +403,17 @@
     const u = document.getElementById('loginUser').value.trim();
     const p = document.getElementById('loginPass').value;
     const msgEl = document.getElementById('loginMsg');
-
-    const resp = await fetch("/user/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: u, password: p })
-    });
+    const resp = await fetch("/user/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: u, password: p }) });
     const data = await resp.json();
-
     if (data.code === 200 && data.access_token) {
       setToken(data.access_token);
       localStorage.setItem("my_username", u);
       window.location.href = "/static/chat.html";
     } else {
       const detail = (data.detail || "").toLowerCase();
-      if (resp.status === 401 && (detail.indexOf("密码") !== -1 || detail.indexOf("用户") !== -1 || detail.indexOf("账号") !== -1)) {
-        showPwdError();
-      } else if (resp.status === 401 && (detail.indexOf("token") !== -1 || detail.indexOf("过期") !== -1)) {
-        msgEl.textContent = '登录已过期，请重新登录';
-        logout();
-      } else {
-        msgEl.textContent = data.detail || data.msg || '登录失败';
-      }
+      if (resp.status === 401 && (detail.indexOf("密码") !== -1 || detail.indexOf("用户") !== -1 || detail.indexOf("账号") !== -1)) showPwdError();
+      else if (resp.status === 401 && (detail.indexOf("token") !== -1 || detail.indexOf("过期") !== -1)) { msgEl.textContent = '登录已过期，请重新登录'; logout(); }
+      else msgEl.textContent = data.detail || data.msg || '登录失败';
     }
   }
 
@@ -279,25 +421,16 @@
   async function handleRegister(e) {
     e.preventDefault();
     const u = document.getElementById('regUser').value.trim();
-    const p1 = document.getElementById('regPass').value;
-    const p2 = document.getElementById('regPass2').value;
+    const p1 = document.getElementById('regPass').value, p2 = document.getElementById('regPass2').value;
     const msgEl = document.getElementById('registerMsg');
-
     if (p1 !== p2) { msgEl.textContent = '两次密码不一致'; return; }
     if (p1.length < 6) { msgEl.textContent = '密码至少6位'; return; }
-
     const res = await UserAPI.register(u, p1);
     if (res.code === 200) {
       msgEl.className = 'auth-msg success';
       msgEl.textContent = '注册成功！即将跳转登录…';
-      setTimeout(() => {
-        switchTab('login');
-        msgEl.className = 'auth-msg';
-        msgEl.textContent = '';
-      }, 1200);
-    } else {
-      msgEl.textContent = res.detail || res.msg || '注册失败';
-    }
+      setTimeout(function() { switchTab('login'); msgEl.className = 'auth-msg'; msgEl.textContent = ''; }, 1200);
+    } else { msgEl.textContent = res.detail || res.msg || '注册失败'; }
   }
 </script>
 
