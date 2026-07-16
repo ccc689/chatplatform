@@ -131,7 +131,11 @@ function buildStatusEmojiPanel(){
   var p = $("statusEmojiPanel");
   if (!p) return;
   p.innerHTML = "";
-  EMOJI_LIST.forEach(function(item){
+  var list = buildEmojiList();
+  var added = new Set();
+  list.forEach(function(item){
+    if (added.has(item.emoji)) return;
+    added.add(item.emoji);
     var s = document.createElement("span");
     s.className = "emoji-item"; s.style.fontSize = "22px";
     s.textContent = item.emoji; s.title = item.mark;
