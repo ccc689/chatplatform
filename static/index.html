@@ -45,6 +45,11 @@
   <!-- Canvas for particles + floating cards + connections -->
   <canvas id="heroCanvas"></canvas>
 
+  <!-- Unicorn Studio WebGL 背景 -->
+  <div class="hero-unicorn" id="heroUnicorn">
+    <div data-us-project="0qtEnTJeZfVfJxRb21IO"></div>
+  </div>
+
   <!-- Hero content -->
   <div class="hero-content">
     <div class="hero-badge">
@@ -235,5 +240,9 @@
 </footer>
 
 <script src="/static/js/landing.js"></script>
+
+<!-- Unicorn Studio WebGL 运行时 -->
+<script>!function(){var u=window.UnicornStudio;if(u&&u.init){if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",function(){u.init()})}else{u.init()}}else{window.UnicornStudio={isInitialized:!1};var i=document.createElement("script");i.src="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.2.8/dist/unicornStudio.umd.js",i.onload=function(){if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",function(){UnicornStudio.init()})}else{UnicornStudio.init()}},(document.head||document.body).appendChild(i)}}();</script>
+
 </body>
 </html>

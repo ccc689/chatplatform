@@ -229,6 +229,15 @@ img { max-width: 100%; display: block; }
   position: absolute; inset: 0; z-index: 2; pointer-events: none;
 }
 
+/* Unicorn Studio WebGL background layer */
+.hero-unicorn {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  opacity: 0.55;
+}
+.hero-unicorn > div {
+  width: 100% !important; height: 100% !important;
+}
+
 /* Hero content */
 .hero-content {
   position: relative; z-index: 10;
