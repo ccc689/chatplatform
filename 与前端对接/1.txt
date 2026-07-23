@@ -1,0 +1,274 @@
+对接流程（你的工作）
+第一步：给前端同事一份 API 文档
+你不需要手写文档，FastAPI 自带，启动服务后让他访问：
+
+
+http://127.0.0.1:8000/docs
+这个 Swagger 页面长这样：
+
+
+┌──────────────────────────────────────┐
+│  POST   /user/register               │
+│  POST   /user/login                  │
+│  POST   /friend/apply                │
+│  GET    /friend/list                 │
+│  POST   /group/create                │
+│  ...                                 │
+│                                      │对接流程（你的工作）
+第一步：给前端同事一份 API 文档
+你不需要手写文档，FastAPI 自带，启动服务后让他访问：
+
+
+http://127.0.0.1:8000/docs
+这个 Swagger 页面长这样：
+
+
+┌──────────────────────────────────────┐
+│  POST   /user/register               │
+│  POST   /user/login                  │
+│  POST   /friend/apply                │
+│  GET    /friend/list                 │
+│  POST   /group/create                │
+│  ...                                 │
+│                                      │
+│  点击任意接口 → Try it out → Execute │
+│  可以直接在页面上调试你的后端接口！    │
+└──────────────────────────────────────┘
+前端同事不用装 Postman，不用读你的 Python 代码，打开这个页面就能看到所有接口的请求格式、响应格式，还能直接在线测试。
+
+第二步：确认接口约定
+你需要和前端同事统一几个东西：
+
+约定项	当前项目的情况
+鉴权方式	JWT，登录后返回 token，后续请求带上
+token 传递位置	有的接口放 URL 参数 ?token=xxx，有的放 Body {"token":"xxx"}（这个不一致是个坑，建议统一）
+响应格式	{"code": 200, "msg": "...", "data": ...}
+错误码	401 = token 过期/无效，200 + code ≠ 200 = 业务错误
+message_type 枚举	0=文本 1=图片 2=文件 3=表情
+WebSocket 协议	JSON 消息，type 字段区分消息类型
+第三步：给前端同事一个「接口封装模板」
+你的项目已经有 api.js，把这个文件交给前端同事就行了，里面封装好了所有接口。结构很清晰：
+
+
+// 前端同事只需要这样调用，不需要关心 HTTP 细节：
+
+// 登录
+var res = await UserAPI.login("zhangsan", "123456");
+// → { code: 200, msg: "登录成功", token: "eyJ..." }
+
+// 获取好友列表
+var res = await FriendAPI.friendList();
+// → { code: 200, friends: [{ username: "李四", avatar: "..." }, ...] }
+
+// 获取会话列表
+var res = await ConvAPI.list();
+// → { code: 200, conversations: [...] }
+
+// WebSocket 发消息
+chatSocket.sendPrivate("李四", "你好", 0);   // 文本
+chatSocket.sendPrivate("李四", url, 1);     // 图片
+新增接口时的对接 SOP
+当你新增一个后端接口时，按这个流程走：
+
+
+你（后端）做：                         前端同事需要知道：
+
+1. 在 api/ 下写接口                    →
+2. 在 main.py 注册路由                 →
+3. 重启服务                            →
+4. 打开 /docs 确认接口能调通            →
+                                      ← 打开 /docs 看请求/响应格式
+5. 在 api.js 加一个封装函数             ← 直接用你写好的函数
+   （或者让前端同事自己加也行）
+6. 告诉前端同事新增了哪个接口            ← 前端调用新函数，联调
+举个例子，你新加了一个「修改密码」接口：
+
+
+# 你的工作：api/user.py
+@router.post("/change_password")
+def change_password(body: ChangePwdReq, db: Session = Depends(get_db)):
+    ...
+    return {"code": 200, "msg": "密码修改成功"}
+然后你只需要告诉前端同事一句话：
+
+新增接口 POST /user/change_password，请求体 {token, old_password, new_password}，响应 {code, msg}，打开 /docs 可以看到详情。
+
+他就能自己打开 /docs 调试，或者在 api.js 里加一行：
+
+
+// 前端同事在 api.js 里加：
+changePassword: function(oldPwd, newPwd) {
+    return apiPost("/user/change_password", { 
+        token: getToken(), old_password: oldPwd, new_password: newPwd 
+    });
+}
+你的后端不需要任何改动
+核心要点：前端同事只需要知道三样东西 —— URL、请求格式、响应格式。这些信息你的 FastAPI 已经通过 /docs 自动提供了。他不需要读 Python 代码，不需要了解数据库，直接对着 Swagger 页面就能干活。
+
+你现在要做的事情就是保持 /docs 文档准确（Pydantic 模型写清楚注释），其他的前端对接全是自然发生的。
+│  点击任意接口 → Try it out → Execute │
+│  可以直接在页面上调试你的后端接口！    │
+└──────────────────────────────────────┘
+前端同事不用装 Postman，不用读你的 Python 代码，打开这个页面就能看到所有接口的请求格式、响应格式，还能直接在线测试。
+
+第二步：确认接口约定
+你需要和前端同事统一几个东西：
+
+约定项	当前项目的情况
+鉴权方式	JWT，登录后返回 token，后续请求带上
+token 传递位置	有的接口放 URL 参数 ?token=xxx，有的放 Body {"token":"xxx"}（这个不一致是个坑，建议统一）
+响应格式	{"code": 200, "msg": "...", "data": ...}
+错误码	401 = token 过期/无效，200 + code ≠ 200 = 业务错误
+message_type 枚举	0=文本 1=图片 2=文件 3=表情
+WebSocket 协议	JSON 消息，type 字段区分消息类型
+第三步：给前端同事一个「接口封装模板」
+你的项目已经有 api.js，把这个文件交给前端同事就行了，里面封装好了所有接口。结构很清晰：
+
+
+// 前端同事只需要这样调用，不需要关心 HTTP 细节：
+
+// 登录
+var res = await UserAPI.login("zhangsan", "123456");
+// → { code: 200, msg: "登录成功", token: "eyJ..." }
+
+// 获取好友列表
+var res = await FriendAPI.friendList();
+// → { code: 200, friends: [{ username: "李四", avatar: "..." }, ...] }
+
+// 获取会话列表
+var res = await ConvAPI.list();
+// → { code: 200, conversations: [...] }
+
+// WebSocket 发消息
+chatSocket.sendPrivate("李四", "你好", 0);   // 文本
+chatSocket.sendPrivate("李四", url, 1);     // 图片
+新增接口时的对接 SOP
+当你新增一个后端接口时，按这个流程走：
+
+
+你（后端）做：                         前端同事需要知道：
+
+1. 在 api/ 下写接口                    →
+2. 在 main.py 注册路由                 →
+3. 重启服务                            →
+4. 打开 /docs 确认接口能调通            →
+                                      ← 打开 /docs 看请求/响应格式
+5. 在 api.js 加一个封装函数             ← 直接用你写好的函数
+   （或者让前端同事自己加也行）
+6. 告诉前端同事新增了哪个接口            ← 前端调用新函数，联调
+举个例子，你新加了一个「修改密码」接口：
+
+
+# 你的工作：api/user.py
+@router.post("/change_password")
+def change_password(body: ChangePwdReq, db: Session = Depends(get_db)):
+    ...
+    return {"code": 200, "msg": "密码修改成功"}
+然后你只需要告诉前端同事一句话：
+
+新增接口 POST /user/change_password，请求体 {token, old_password, new_password}，响应 {code, msg}，打开 /docs 可以看到详情。
+
+他就能自己打开 /docs 调试，或者在 api.js 里加一行：
+
+
+// 前端同事在 api.js 里加：对接流程（你的工作）
+第一步：给前端同事一份 API 文档
+你不需要手写文档，FastAPI 自带，启动服务后让他访问：
+
+
+http://127.0.0.1:8000/docs
+这个 Swagger 页面长这样：
+
+
+┌──────────────────────────────────────┐
+│  POST   /user/register               │
+│  POST   /user/login                  │
+│  POST   /friend/apply                │
+│  GET    /friend/list                 │
+│  POST   /group/create                │
+│  ...                                 │
+│                                      │
+│  点击任意接口 → Try it out → Execute │
+│  可以直接在页面上调试你的后端接口！    │
+└──────────────────────────────────────┘
+前端同事不用装 Postman，不用读你的 Python 代码，打开这个页面就能看到所有接口的请求格式、响应格式，还能直接在线测试。
+
+第二步：确认接口约定
+你需要和前端同事统一几个东西：
+
+约定项	当前项目的情况
+鉴权方式	JWT，登录后返回 token，后续请求带上
+token 传递位置	有的接口放 URL 参数 ?token=xxx，有的放 Body {"token":"xxx"}（这个不一致是个坑，建议统一）
+响应格式	{"code": 200, "msg": "...", "data": ...}
+错误码	401 = token 过期/无效，200 + code ≠ 200 = 业务错误
+message_type 枚举	0=文本 1=图片 2=文件 3=表情
+WebSocket 协议	JSON 消息，type 字段区分消息类型
+第三步：给前端同事一个「接口封装模板」
+你的项目已经有 api.js，把这个文件交给前端同事就行了，里面封装好了所有接口。结构很清晰：
+
+
+// 前端同事只需要这样调用，不需要关心 HTTP 细节：
+
+// 登录
+var res = await UserAPI.login("zhangsan", "123456");
+// → { code: 200, msg: "登录成功", token: "eyJ..." }
+
+// 获取好友列表
+var res = await FriendAPI.friendList();
+// → { code: 200, friends: [{ username: "李四", avatar: "..." }, ...] }
+
+// 获取会话列表
+var res = await ConvAPI.list();
+// → { code: 200, conversations: [...] }
+
+// WebSocket 发消息
+chatSocket.sendPrivate("李四", "你好", 0);   // 文本
+chatSocket.sendPrivate("李四", url, 1);     // 图片
+新增接口时的对接 SOP
+当你新增一个后端接口时，按这个流程走：
+
+
+你（后端）做：                         前端同事需要知道：
+
+1. 在 api/ 下写接口                    →
+2. 在 main.py 注册路由                 →
+3. 重启服务                            →
+4. 打开 /docs 确认接口能调通            →
+                                      ← 打开 /docs 看请求/响应格式
+5. 在 api.js 加一个封装函数             ← 直接用你写好的函数
+   （或者让前端同事自己加也行）
+6. 告诉前端同事新增了哪个接口            ← 前端调用新函数，联调
+举个例子，你新加了一个「修改密码」接口：
+
+
+# 你的工作：api/user.py
+@router.post("/change_password")
+def change_password(body: ChangePwdReq, db: Session = Depends(get_db)):
+    ...
+    return {"code": 200, "msg": "密码修改成功"}
+然后你只需要告诉前端同事一句话：
+
+新增接口 POST /user/change_password，请求体 {token, old_password, new_password}，响应 {code, msg}，打开 /docs 可以看到详情。
+
+他就能自己打开 /docs 调试，或者在 api.js 里加一行：
+
+
+// 前端同事在 api.js 里加：
+changePassword: function(oldPwd, newPwd) {
+    return apiPost("/user/change_password", { 
+        token: getToken(), old_password: oldPwd, new_password: newPwd 
+    });
+}
+你的后端不需要任何改动
+核心要点：前端同事只需要知道三样东西 —— URL、请求格式、响应格式。这些信息你的 FastAPI 已经通过 /docs 自动提供了。他不需要读 Python 代码，不需要了解数据库，直接对着 Swagger 页面就能干活。
+
+你现在要做的事情就是保持 /docs 文档准确（Pydantic 模型写清楚注释），其他的前端对接全是自然发生的。
+changePassword: function(oldPwd, newPwd) {
+    return apiPost("/user/change_password", { 
+        token: getToken(), old_password: oldPwd, new_password: newPwd 
+    });
+}
+你的后端不需要任何改动
+核心要点：前端同事只需要知道三样东西 —— URL、请求格式、响应格式。这些信息你的 FastAPI 已经通过 /docs 自动提供了。他不需要读 Python 代码，不需要了解数据库，直接对着 Swagger 页面就能干活。
+
+你现在要做的事情就是保持 /docs 文档准确（Pydantic 模型写清楚注释），其他的前端对接全是自然发生的。

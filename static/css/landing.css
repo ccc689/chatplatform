@@ -224,19 +224,9 @@ img { max-width: 100%; display: block; }
   -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 45%, black 35%, transparent 70%);
 }
 
-/* Canvas layer — behind Unicorn */
+/* Canvas layer */
 #heroCanvas {
   position: absolute; inset: 0; z-index: 2; pointer-events: none;
-}
-
-/* Unicorn Studio WebGL background layer */
-.hero-unicorn {
-  position: absolute; top:0; left:0; right:0; bottom:0;
-  z-index: 3; pointer-events: none; opacity: 0.8;
-}
-.hero-unicorn > div {
-  width: 100% !important; height: 100% !important;
-  min-width: 100%; min-height: 100%;
 }
 
 /* Hero content */
