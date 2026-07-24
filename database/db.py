@@ -98,3 +98,12 @@ class UploadResource(Base):
     save_path = Column(String(500), nullable=False, comment="服务器存储路径")
     file_size = Column(BIGINT, comment="文件大小（字节）")
     create_at = Column(DateTime, default=datetime.now, comment="上传时间")
+
+
+class LoginAttempt(Base):
+    __tablename__ = "login_attempt"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String(50), nullable=False, comment="尝试登录的用户名")
+    ip_address = Column(String(45), default="", comment="客户端IP")
+    success = Column(SmallInteger, default=0, comment="0失败 1成功")
+    create_at = Column(DateTime, default=datetime.now, comment="尝试时间")

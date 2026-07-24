@@ -3,6 +3,7 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
+import re
 
 load_dotenv()
 
@@ -59,3 +60,50 @@ EMOJI_MAP = {
     "[daze]": "😳",
     "[proud]": "😎",
 }
+
+
+# ==================== 输入校验 ====================
+
+# 用户名规则：3-20 个字符，仅允许中文、字母、数字、下划线
+USERNAME_PATTERN = re.compile(r'^[\w一-鿿]{3,20}$')
+
+# 密码规则：至少 8 位，必须包含至少一个字母和一个数字，不允许空格
+PASSWORD_LETTER_PATTERN = re.compile(r'[A-Za-z]')
+PASSWORD_DIGIT_PATTERN = re.compile(r'\d')
+
+
+def validate_username(username: str) -> str | None:
+    """
+    校验用户名合法性。
+    返回 None 表示通过，返回字符串表示错误原因。
+    """
+    if not username or not username.strip():
+        return "用户名不能为空"
+    username = username.strip()
+    if len(username) < 3:
+        return "用户名至少需要 3 个字符"
+    if len(username) > 20:
+        return "用户名最多 20 个字符"
+    if not USERNAME_PATTERN.match(username):
+        return "用户名仅允许中文、字母、数字、下划线"
+    return None
+
+
+def validate_password(password: str) -> str | None:
+    """
+    校验密码强度。
+    返回 None 表示通过，返回字符串表示错误原因。
+    """
+    if not password:
+        return "密码不能为空"
+    if len(password) < 8:
+        return "密码至少需要 8 位"
+    if len(password) > 128:
+        return "密码最多 128 位"
+    if ' ' in password:
+        return "密码不允许包含空格"
+    if not PASSWORD_LETTER_PATTERN.search(password):
+        return "密码必须包含至少一个字母"
+    if not PASSWORD_DIGIT_PATTERN.search(password):
+        return "密码必须包含至少一个数字"
+    return None

@@ -13,7 +13,7 @@ import os
 from jose import jwt, JWTError
 
 # 数据库
-from database.db import engine, get_db, SessionLocal, Base, User, FriendRelation, ChatMessage, ChatGroup, GroupMember, UploadResource
+from database.db import engine, get_db, SessionLocal, Base, User, FriendRelation, ChatMessage, ChatGroup, GroupMember, UploadResource, LoginAttempt
 from database.models.chat import GroupEvent, GroupJoinRequest, GroupMuteSetting
 from database.models.friend import FriendRemark, FriendMuteSetting
 # 路由

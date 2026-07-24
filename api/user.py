@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from database.db import get_db, User
-from utils.security import hash_password, verify_password, create_access_token, get_current_user_from_token
-from datetime import timedelta
+from database.db import get_db, User, LoginAttempt
+from utils.security import (
+    hash_password, verify_password, create_access_token,
+    get_current_user_from_token, validate_username, validate_password
+)
+from datetime import timedelta, datetime
 
 router = APIRouter(prefix="/user", tags=["用户模块"])
 
@@ -29,23 +32,57 @@ class ProfileUpdate(BaseModel):
 
 @router.post("/register")
 def register(user: UserRegister, db: Session = Depends(get_db)):
-    exist_user = db.query(User).filter(User.username == user.username).first()
+    # Bug 1: 用户名校验
+    username_err = validate_username(user.username)
+    if username_err:
+        raise HTTPException(status_code=400, detail=username_err)
+
+    # Bug 4: 密码强度校验
+    pwd_err = validate_password(user.password)
+    if pwd_err:
+        raise HTTPException(status_code=400, detail=pwd_err)
+
+    exist_user = db.query(User).filter(User.username == user.username.strip()).first()
     if exist_user:
         raise HTTPException(status_code=400, detail="用户名已被注册")
     hashed_pwd = hash_password(user.password)
-    new_user = User(username=user.username, password=hashed_pwd)
+    new_user = User(username=user.username.strip(), password=hashed_pwd)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    return {"code":200, "msg":"注册成功", "user_id":new_user.id}
+    return {"code": 200, "msg": "注册成功", "user_id": new_user.id}
 
 @router.post("/login")
-def login(user: UserLogin, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.username == user.username).first()
+def login(user: UserLogin, request: Request, db: Session = Depends(get_db)):
+    client_ip = request.client.host if request.client else "unknown"
+
+    # Bug 2: 暴力破解防护 — 同一账号 15 分钟内失败 ≥5 次则锁定
+    lock_time = datetime.now() - timedelta(minutes=15)
+    recent_failures = db.query(LoginAttempt).filter(
+        LoginAttempt.username == user.username.strip(),
+        LoginAttempt.success == 0,
+        LoginAttempt.create_at >= lock_time
+    ).count()
+
+    if recent_failures >= 5:
+        raise HTTPException(status_code=429, detail="登录失败次数过多，请 15 分钟后再试")
+
+    db_user = db.query(User).filter(User.username == user.username.strip()).first()
+
     if not db_user or not verify_password(user.password, db_user.password):
+        # 记录失败尝试
+        attempt = LoginAttempt(username=user.username.strip(), ip_address=client_ip, success=0)
+        db.add(attempt)
+        db.commit()
         raise HTTPException(status_code=401, detail="用户名或密码错误")
+
+    # 记录成功尝试
+    attempt = LoginAttempt(username=user.username.strip(), ip_address=client_ip, success=1)
+    db.add(attempt)
+    db.commit()
+
     token = create_access_token(data={"uid": db_user.id})
-    return {"code":200, "msg":"登录成功", "access_token":token, "token_type":"bearer"}
+    return {"code": 200, "msg": "登录成功", "access_token": token, "token_type": "bearer"}
 
 
 # ==================== 个人信息 ====================
@@ -121,8 +158,16 @@ def change_password(body: ChangePasswordRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="用户不存在")
     if not verify_password(body.old_password, user.password):
         raise HTTPException(status_code=400, detail="当前密码错误")
-    if len(body.new_password) < 6:
-        raise HTTPException(status_code=400, detail="新密码至少6位")
+
+    # Bug 3: 新旧密码不能相同
+    if verify_password(body.new_password, user.password):
+        raise HTTPException(status_code=400, detail="新密码不能与旧密码相同")
+
+    # Bug 4: 密码强度校验
+    pwd_err = validate_password(body.new_password)
+    if pwd_err:
+        raise HTTPException(status_code=400, detail=pwd_err)
+
     user.password = hash_password(body.new_password)
     db.commit()
     return {"code": 200, "msg": "密码修改成功"}
