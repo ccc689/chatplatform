@@ -172,6 +172,22 @@ var GroupAPI = {
   },
   getMuteSetting: function(gid) {
     return apiGet("/group/mute_setting?token=" + getToken() + "&group_id=" + gid);
+  },
+  // 邀请系统
+  invitableFriends: function(gid) {
+    return apiGet("/group/invitable_friends?token=" + getToken() + "&group_id=" + gid);
+  },
+  inviteList: function() {
+    return apiGet("/group/invite/list?token=" + getToken());
+  },
+  inviteCount: function() {
+    return apiGet("/group/invite/count?token=" + getToken());
+  },
+  inviteDeal: function(id, op) {
+    return apiPost("/group/invite/deal", { token: getToken(), invite_id: id, operate: op });
+  },
+  joinMode: function(gid, mode) {
+    return apiPost("/group/update", { token: getToken(), group_id: gid, join_mode: mode });
   }
 };
 

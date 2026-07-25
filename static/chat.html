@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>数字方舟</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=5.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=6.0">
 </head>
 <body>
 <!-- ====== 会话右键菜单 ====== -->
@@ -237,6 +237,30 @@
     <div class="modal-footer" style="margin-top:12px;">
       <button class="btn-confirm" onclick="saveAnnouncement()">保存</button>
       <button class="btn-cancel" onclick="closeModal('announcementEditModal')">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 群通知弹窗 ====== -->
+<div class="modal-overlay" id="groupInviteModal">
+  <div class="modal-box" style="max-width:380px;">
+    <span class="modal-back-arrow" onclick="closeModal('groupInviteModal')">←</span>
+    <h3>🔔 群通知</h3>
+    <div id="groupInviteContent" style="max-height:320px;overflow-y:auto;"></div>
+    <div class="modal-footer" style="margin-top:12px;"><button class="btn-cancel" onclick="closeModal('groupInviteModal')">关闭</button></div>
+  </div>
+</div>
+
+<!-- ====== 邀请好友入群弹窗 ====== -->
+<div class="modal-overlay" id="inviteToGroupModal">
+  <div class="modal-box" style="max-width:360px;">
+    <span class="modal-back-arrow" onclick="closeModal('inviteToGroupModal');showGroupManagePanel()">←</span>
+    <h3>邀请好友入群</h3>
+    <p style="font-size:13px;color:var(--text-sub);margin-bottom:8px;">选择要邀请的好友（可多选）：</p>
+    <div class="modal-check-list" id="inviteMemberCheckboxes" style="max-height:240px;overflow-y:auto;"></div>
+    <div class="modal-footer" style="margin-top:12px;">
+      <button class="btn-confirm" onclick="inviteToGroup()">确认邀请</button>
+      <button class="btn-cancel" onclick="closeModal('inviteToGroupModal');showGroupManagePanel()">取消</button>
     </div>
   </div>
 </div>

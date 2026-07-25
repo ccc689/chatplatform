@@ -391,3 +391,14 @@ def get_friend_mute(token: str, friend_username: str, db: Session = Depends(get_
     ).scalar() or 0
 
     return {"code": 200, "is_muted": setting}
+
+# ---------- 12. ?????? ----------
+@router.get("/apply/count")
+def get_apply_count(token: str, db: Session = Depends(get_db)):
+    """????????????????????"""
+    current_uid = get_current_user_from_token(token)
+    count = db.query(FriendRelation).filter(
+        FriendRelation.friend_id == current_uid,
+        FriendRelation.status == 0
+    ).count()
+    return {"code": 200, "count": count}

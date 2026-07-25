@@ -48,11 +48,18 @@ function convKey(t,id){return t+"_"+id;}
 function pad(n){return n<10?"0"+n:n;}
 function formatWechatTime(ts) {
   if(!ts) return "";
-  var now=new Date(), t=new Date(ts.replace(/-/g,"/"));
-  var diff=now-t, min=Math.floor(diff/60000), hr=Math.floor(diff/3600000);
+  var dt=null;
+  if(typeof ts==="number"){dt=new Date(ts);}
+  else if(typeof ts==="string"){
+    var s=ts.replace(/-/g,"/").replace(/\.\d+Z$/,"Z");
+    dt=new Date(s);
+  }
+  else{dt=new Date(ts);}
+  if(!dt||isNaN(dt.getTime())) return "";
+  var now=new Date(), diff=now-dt, min=Math.floor(diff/60000), hr=Math.floor(diff/3600000);
+  var t=dt, td=t.getDate(), nd=now.getDate(), tm=t.getMonth(), nm=now.getMonth(), ty=t.getFullYear(), ny=now.getFullYear();
   if(min<1) return "刚刚";
   if(min<60) return min+"分钟前";
-  var td=t.getDate(), nd=now.getDate(), tm=t.getMonth(), nm=now.getMonth(), ty=t.getFullYear(), ny=now.getFullYear();
   if(hr<24 && td===nd && tm===nm && ty===ny) return hr+"小时前";
   var yest=new Date(now);yest.setDate(nd-1);
   if(td===yest.getDate() && tm===yest.getMonth()) return "昨天 "+pad(t.getHours())+":"+pad(t.getMinutes());
@@ -178,10 +185,57 @@ function saveSetting(k,v){localStorage.setItem("setting_"+k,v?"1":"0");}
 async function changePassword(){var o=$("oldPwd").value,n1=$("newPwd").value,n2=$("newPwd2").value;if(!o||!n1){alert("请填写完整");return;}if(n1.length<6){alert("新密码至少6位");return;}if(n1!==n2){alert("两次密码不一致");return;}var r=await apiPost("/user/change_password",{token:getToken(),old_password:o,new_password:n1});if(r.code===200){alert("密码修改成功");$("changePwdArea").style.display="none";$("oldPwd").value="";$("newPwd").value="";$("newPwd2").value="";}else{alert(r.detail||"修改失败");}}
 
 /* ==================== 收藏 ==================== */
-function favMsg(){if(!contextMsgData||!contextMsgData.content)return;$("msgContextMenu").classList.remove("visible");var favs=getFavs();favs.push({content:contextMsgData.content, time:contextMsgData.time, sender:contextMsgData.sender, msgType:0, addedAt:new Date().toISOString()});setFavs(favs);}
-function renderFavorites(){var favs=getFavs(),c=$("favoritesList");if(favs.length===0){c.innerHTML='<div style="text-align:center;color:var(--text-sub);padding:30px;">暂无收藏</div>';return;}c.innerHTML=favs.map(function(f,i){return'<div class="fav-item"><div class="fav-content">'+escapeHtml(f.content).slice(0,200)+'</div><div class="fav-meta">'+formatWechatTime(f.addedAt)+'</div><span class="fav-del" onclick="delFav('+i+')">✕</span></div>';}).join("");}
+function favMsg(){
+  if(!contextMsgData||!contextMsgData.content)return;
+  $("msgContextMenu").classList.remove("visible");
+  var favs=getFavs();
+  favs.push({
+    content:contextMsgData.content, time:contextMsgData.time,
+    sender:contextMsgData.sender, msgType:contextMsgData.msgType||0,
+    chatWith:contextMsgData.chatWith||(currentChat?currentChat.name:""),
+    chatType:contextMsgData.chatType||(currentChat?currentChat.type:""),
+    addedAt:new Date().toISOString()
+  });
+  setFavs(favs);
+}
+var favFolderState = {}; // track which folders are open
+function renderFavorites(){
+  var favs=getFavs(),c=$("favoritesList");
+  if(favs.length===0){c.innerHTML='<div style="text-align:center;color:var(--text-sub);padding:30px;">暂无收藏</div>';return;}
+  var groups={}, order=[];
+  favs.forEach(function(f,i){
+    var label;
+    if(!f.chatWith){label="未分类";}
+    else if(f.chatType==="group"){label="群聊："+f.chatWith;}
+    else{label="与 "+f.chatWith+" 的聊天";}
+    if(!groups[label]){groups[label]=[];order.push(label);}
+    groups[label].push({i:i,content:f.content,time:f.time,sender:f.sender,msgType:f.msgType||0,addedAt:f.addedAt});
+  });
+  order.forEach(function(k){groups[k].sort(function(a,b){return new Date(b.addedAt)-new Date(a.addedAt);});});
+  order.sort(function(a,b){return new Date(groups[b][0].addedAt)-new Date(groups[a][0].addedAt);});
+  var icons={0:"💬",1:"🖼",2:"📎",3:"😊"};
+  var html="";
+  order.forEach(function(label,gi){
+    var items=groups[label];
+    var folderId="favFolder"+gi;
+    var isOpen=favFolderState[folderId]!==false;
+    var arrow=isOpen?"▼":"▶";
+    html+='<div style="font-size:13px;color:var(--green);font-weight:600;padding:10px 0;border-top:1px solid var(--border-light);margin-top:4px;cursor:pointer;" onclick="toggleFavFolder(\''+folderId+'\')">'+arrow+' 📁 '+escapeHtml(label)+' <span style="font-weight:400;color:var(--text-sub);font-size:12px;">('+items.length+'条)</span></div>';
+    html+='<div id="'+folderId+'" style="'+(isOpen?"":"display:none;")+'">';
+    items.forEach(function(f){
+      var icon=icons[f.msgType]||"💬",preview="";
+      if(f.msgType===1){preview="[图片]";}
+      else if(f.msgType===2){preview="[文件] "+escapeHtml(f.content).slice(0,100);}
+      else{preview=escapeHtml(f.content).slice(0,120);}
+      html+='<div class="fav-item"><div class="fav-content"><span style="margin-right:6px;">'+icon+'</span>'+preview+'</div><div class="fav-meta">'+(f.time?formatWechatTime(f.time)+" · ":"")+"收藏于 "+formatWechatTime(f.addedAt)+'</div><span class="fav-del" onclick="delFav('+f.i+')">✕</span></div>';
+    });
+    html+='</div>';
+  });
+  c.innerHTML=html;
+}
+function toggleFavFolder(id){if(favFolderState[id]===undefined)favFolderState[id]=true;favFolderState[id]=!favFolderState[id];renderFavorites();}
 function delFav(i){var favs=getFavs();favs.splice(i,1);setFavs(favs);renderFavorites();}
-function multiFav(){var favs=getFavs();multiSelected.forEach(function(k){var el=document.querySelector('.msg-row[data-msg-key="'+k+'"]');if(el){favs.push({content:el.getAttribute("data-msg-content"),time:el.getAttribute("data-msg-time"),sender:el.getAttribute("data-msg-sender"),msgType:0,addedAt:new Date().toISOString()});}});setFavs(favs);exitMultiSelect();}
+function multiFav(){var favs=getFavs();multiSelected.forEach(function(k){var el=document.querySelector('.msg-row[data-msg-key="'+k+'"]');if(el){favs.push({content:el.getAttribute("data-msg-content"),time:el.getAttribute("data-msg-time"),sender:el.getAttribute("data-msg-sender"),msgType:parseInt(el.getAttribute("data-msg-type"))||0,chatWith:currentChat?currentChat.name:"",chatType:currentChat?currentChat.type:"",addedAt:new Date().toISOString()});}});setFavs(favs);exitMultiSelect();}
 
 /* ==================== WebSocket ==================== */
 function handleWsMessage(msg){
@@ -212,6 +266,10 @@ function handleWsMessage(msg){
   }
 
   if(msg.type==="new_msg"){
+    // 如果之前被手动隐藏（deleteConv），收到新消息时自动恢复
+    var key=convKey("private",msg.sender_id||msg.sender_username),dels=getDeleted(),dx=dels.indexOf(key);
+    if(dx===-1&&msg.sender_username){dx=dels.indexOf(convKey("private",msg.sender_username));}
+    if(dx!==-1){dels.splice(dx,1);setDeleted(dels);}
     if(currentChat&&currentChat.type==="private"&&currentChat.name===msg.sender_username){appendBubble("other",msg.sender_username,msg.content,msg.message_type,msg.create_at,msg.id);showTyping(false);}
     loadConversations();if(!currentChat||currentChat.type!=="private"||currentChat.name!==msg.sender_username)highlightConvItem("private",0,msg.sender_username);
   }
@@ -252,10 +310,68 @@ function showTyping(show){var s=$("chatSubtitle");if(!s)return;if(show){s.innerH
 
 /* ==================== 数据加载 ==================== */
 async function loadConversations(){try{var r=await ConvAPI.list();convListCache=r.data||[];applyLocalOverrides();renderConversations();}catch(e){}}
-function applyLocalOverrides(){var n=getNotes(),p=getPinned(),m=getMuted(),d=getDeleted();convListCache=convListCache.filter(function(c){return d.indexOf(convKey(c.type,c.target_id))===-1;});convListCache.forEach(function(c){var nk=c.type==="private"?c.name:convKey("group",c.target_id);if(c.remark){c._note=c.remark;}else if(n[nk]){c._note=n[nk];}else{c._note=null;}c._pinned=p.indexOf(convKey(c.type,c.target_id))!==-1;c._muted=m.indexOf(convKey(c.type,c.target_id))!==-1;});convListCache.sort(function(a,b){if(a._pinned&&!b._pinned)return-1;if(!a._pinned&&b._pinned)return 1;return(b.last_time_sort||b.last_time||"0").localeCompare(a.last_time_sort||a.last_time||"0");});}
+function applyLocalOverrides(){
+  var n=getNotes(),p=getPinned(),m=getMuted(),d=getDeleted();
+  cleanDeletedKeys(d);
+  // 检查被清除聊天记录的会话：如果最后消息早于清除时间，清空预览
+  var cleared=getChatCleared();
+  convListCache.forEach(function(c){
+    var ck=convKey(c.type,c.target_id);
+    if(cleared[ck]&&c.last_time){
+      var ct=new Date(cleared[ck]);
+      var lt=new Date(c.last_time.replace(/-/g,"/"));
+      if(lt<ct){c.last_msg="";c.last_time="";}
+    }
+  });
+  convListCache=convListCache.filter(function(c){return d.indexOf(convKey(c.type,c.target_id))===-1;});
+  convListCache.forEach(function(c){
+    var nk=c.type==="private"?c.name:convKey("group",c.target_id);
+    if(c.remark){c._note=c.remark;}else if(n[nk]){c._note=n[nk];}else{c._note=null;}
+    c._pinned=p.indexOf(convKey(c.type,c.target_id))!==-1;
+    c._muted=m.indexOf(convKey(c.type,c.target_id))!==-1;
+  });
+  convListCache.sort(function(a,b){
+    if(a._pinned&&!b._pinned)return-1;if(!a._pinned&&b._pinned)return 1;
+    return(b.last_time_sort||b.last_time||"0").localeCompare(a.last_time_sort||a.last_time||"0");
+  });
+}
+
+function cleanDeletedKeys(d){
+  for(var i=d.length-1;i>=0;i--){
+    var parts=d[i].split("_");
+    if(parts[0]==="private"&&parts[1]&&isNaN(parseInt(parts[1]))){
+      var found=convListCache.find(function(c){return c.type==="private"&&c.name===parts[1];});
+      if(found){d[i]=convKey("private",found.target_id);}
+      else{d.splice(i,1);}
+    }
+  }
+  setDeleted(d);
+}
 async function loadFriends(){try{var r=await FriendAPI.friendList();friendListCache=r.friend_list||[];}catch(e){}}
 async function loadGroups(){try{var r=await GroupAPI.list();groupListCache=r.data||[];}catch(e){}}
-async function loadApplyBadge(){try{var r=await FriendAPI.applyList(),n=(r.data||[]).length;var b=$("applyBadge");if(b)b.textContent=n>0?"("+n+")":"";var p=$("plusBadge");if(p){if(n>0)p.classList.add("visible");else p.classList.remove("visible");}}catch(e){}}
+async function loadApplyBadge(){try{var r=await FriendAPI.applyList(),n=(r.data||[]).length;var gi=await GroupAPI.inviteCount(),gn=gi.count||0;var total=n+gn;var p=$("plusBadge");if(p){if(total>0)p.classList.add("visible");else p.classList.remove("visible");}var fb=$("friendReqBadge");if(fb)fb.textContent=n>0?"("+n+")":"";var gb=$("groupInviteBadge");if(gb)gb.textContent=gn>0?"("+gn+")":"";}catch(e){}}
+
+async function showFriendRequests(){
+  var d=$("plusDropdown");if(d)d.classList.remove("visible");
+  try{
+    var r=await FriendAPI.applyList(),list=r.data||[];
+    if(list.length===0){alert("暂无新朋友申请");return;}
+    var c=$("applyListInline");c.innerHTML=list.map(function(a){return'<div class="apply-item-row"><div class="apply-user">'+escapeHtml(a.apply_user_name)+'</div><div style="display:flex;gap:6px;"><button class="btn-accept" onclick="handleApplyFromModal('+a.apply_id+',1);event.stopPropagation();">同意</button><button class="btn-reject" onclick="handleApplyFromModal('+a.apply_id+',0);event.stopPropagation();">拒绝</button></div></div>';}).join("");
+    c.style.display="block";$("addFriendModal").classList.add("visible");
+  }catch(e){alert(e);}
+}
+async function handleApplyFromModal(id,op){await FriendAPI.dealApply(id,op);loadFriends();loadApplyBadge();showFriendRequests();}
+
+async function showGroupInvites(){
+  var d=$("plusDropdown");if(d)d.classList.remove("visible");
+  try{
+    var r=await GroupAPI.inviteList(),list=r.data||[];
+    var html=list.length===0?'<div style="text-align:center;color:var(--text-sub);padding:30px;">暂无群通知</div>':
+      list.map(function(inv){var st=inv.can_accept?"待你确认":"等待管理员审批";var act=inv.can_accept?'<div style="display:flex;gap:6px;"><button class="btn-accept" onclick="handleInviteDeal('+inv.invite_id+',1);event.stopPropagation();">加入</button><button class="btn-reject" onclick="handleInviteDeal('+inv.invite_id+',0);event.stopPropagation();">拒绝</button></div>':'<span style="font-size:11px;color:var(--text-sub);">⏳ '+st+'</span>';return'<div class="apply-item-row"><div class="apply-user"><span>'+escapeHtml(inv.group_name)+'</span><span style="font-size:12px;color:var(--text-sub);">'+(inv.inviter_name?" 来自 "+escapeHtml(inv.inviter_name):"")+' · '+st+'</span></div>'+act+'</div>';}).join("");
+    $("groupInviteContent").innerHTML=html;$("groupInviteModal").classList.add("visible");
+  }catch(e){alert(e);}
+}
+async function handleInviteDeal(id,op){try{await GroupAPI.inviteDeal(id,op);loadGroups();loadConversations();loadApplyBadge();showGroupInvites();}catch(e){alert(e.detail||e);}}
 
 /* ==================== 会话列表 ==================== */
 function renderConversations(){
@@ -296,12 +412,12 @@ function openConversation(type,targetId,name){
   $("chatSubtitle").textContent=type==="group"?"群聊":sub;
   $("messageList").innerHTML="";var em=$("messageEmpty");if(em)em.style.display="none";$("chatInputBar").style.display="block";
   var moreBtn=type==="group"?'<button class="more-btn" onclick="showGroupManagePanel()">···</button>':'<button class="more-btn" onclick="showFriendProfile(\''+escapeHtml(name)+'\')">···</button>';
-  $("topbarActions").innerHTML='<div class="theme-toggle" id="themeToggle" onclick="toggleTheme()">'+(getTheme()==="dark"?"☀️":"🌙")+'</div>'+moreBtn+'<div class="plus-menu-wrapper" id="plusMenuWrapper"><button class="plus-btn" id="plusBtn">+</button><span class="plus-badge" id="plusBadge"></span><div class="plus-dropdown" id="plusDropdown"><div class="plus-dropdown-item" onclick="showAddFriendModal()"><span class="plus-dropdown-icon">👤</span><span>添加好友</span></div><div class="plus-dropdown-item" onclick="showCreateGroupModal()"><span class="plus-dropdown-icon">👥</span><span>发起群聊</span></div></div></div>';
+  $("topbarActions").innerHTML='<div class="theme-toggle" id="themeToggle" onclick="toggleTheme()">'+(getTheme()==="dark"?"☀️":"🌙")+'</div>'+moreBtn+'<div class="plus-menu-wrapper" id="plusMenuWrapper"><button class="plus-btn" id="plusBtn">+</button><span class="plus-badge" id="plusBadge"></span><div class="plus-dropdown" id="plusDropdown"><div class="plus-dropdown-item" onclick="showAddFriendModal()"><span class="plus-dropdown-icon">👤</span><span>添加好友</span></div><div class="plus-dropdown-item" onclick="showCreateGroupModal()"><span class="plus-dropdown-icon">👥</span><span>发起群聊</span></div><div class="plus-dropdown-item" onclick="showFriendRequests()"><span class="plus-dropdown-icon">👋</span><span>新朋友</span><span id="friendReqBadge" style="color:var(--unread);font-size:11px;margin-left:auto;"></span></div><div class="plus-dropdown-item" onclick="showGroupInvites()"><span class="plus-dropdown-icon">🔔</span><span>群通知</span><span id="groupInviteBadge" style="color:var(--unread);font-size:11px;margin-left:auto;"></span></div></div></div>';
   bindPlusMenu();loadApplyBadge();renderConversations();
   loadHistory().then(function(){loadConversations();});
 }
 async function loadHistory(){
-  if(!currentChat)return;try{var res=currentChat.type==="private"?await ChatAPI.history(currentChat.name):await GroupAPI.history(currentChat.target_id),msgs=res.data||[],list=$("messageList");list.innerHTML="";var em=$("messageEmpty");if(msgs.length===0){if(em)em.style.display="block";}else{if(em)em.style.display="none";}lastMsgDate=null;msgs.forEach(function(m){appendBubble((m.sender_name===myUsername)?"me":"other",m.sender_name,m.content,m.message_type,m.create_at,m.id,m.sender_avatar);});
+  if(!currentChat)return;try{var res=currentChat.type==="private"?await ChatAPI.history(currentChat.name):await GroupAPI.history(currentChat.target_id),msgs=res.data||[],list=$("messageList");list.innerHTML="";var cleared=getChatCleared();var ck=convKey(currentChat.type,currentChat.target_id);var clearTime=cleared[ck]||"";if(clearTime){var ctDate=new Date(clearTime);msgs=msgs.filter(function(m){var mt=m.create_at.replace(/-/g,"/");return new Date(mt)>=ctDate;});}var em=$("messageEmpty");if(msgs.length===0){if(em)em.style.display="block";}else{if(em)em.style.display="none";}lastMsgDate=null;msgs.forEach(function(m){appendBubble((m.sender_name===myUsername)?"me":"other",m.sender_name,m.content,m.message_type,m.create_at,m.id,m.sender_avatar);});
   // 已读回执：打开会话后通知发送方「我已读」
   if(currentChat.type==="private"){chatSocket._send({type:"mark_read",target_username:currentChat.name});}
   else if(currentChat.type==="group"){chatSocket._send({type:"group_mark_read",group_id:currentChat.target_id});}
@@ -321,7 +437,7 @@ function appendBubble(side,sender,content,msgType,time,msgId,senderAvatar){
   var list=$("messageList"),em=$("messageEmpty");if(em)em.style.display="none";
   if(time){try{var d=time.slice(0,10);if(lastMsgDate&&lastMsgDate!==d){var dv=document.createElement("div");dv.className="time-divider";dv.innerHTML="<span>"+(time?time.slice(0,16):"")+"</span>";list.appendChild(dv);}lastMsgDate=d;}catch(e){}}
   var row=document.createElement("div");row.className="msg-row "+side;
-  var key=msgId||("k"+Date.now()+Math.random());row.setAttribute("data-msg-key",key);row.setAttribute("data-msg-id",msgId||"");row.setAttribute("data-msg-content",content||"");row.setAttribute("data-msg-time",time||"");row.setAttribute("data-msg-sender",sender||"");
+  var key=msgId||("k"+Date.now()+Math.random());row.setAttribute("data-msg-key",key);row.setAttribute("data-msg-id",msgId||"");row.setAttribute("data-msg-content",content||"");row.setAttribute("data-msg-time",time||"");row.setAttribute("data-msg-sender",sender||"");row.setAttribute("data-msg-type",msgType||0);
   row.addEventListener("contextmenu",function(e){onMsgContext(e,row);});
 
   // 对方消息头像
@@ -367,7 +483,7 @@ function getAvatarForUser(username){if(!username)return"";for(var i=0;i<convList
 function onMsgContext(e,row){
   if(multiSelectMode){e.preventDefault();var cb=row.querySelector(".msg-checkbox");if(cb){cb.checked=!cb.checked;if(cb.checked)multiSelected.add(row.getAttribute("data-msg-key"));else multiSelected.delete(row.getAttribute("data-msg-key"));updateMultiCount();}return;}
   e.preventDefault();
-  contextMsgData={key:row.getAttribute("data-msg-key"),id:row.getAttribute("data-msg-id"),content:row.getAttribute("data-msg-content"),time:row.getAttribute("data-msg-time"),sender:row.getAttribute("data-msg-sender")};
+  contextMsgData={key:row.getAttribute("data-msg-key"),id:row.getAttribute("data-msg-id"),content:row.getAttribute("data-msg-content"),time:row.getAttribute("data-msg-time"),sender:row.getAttribute("data-msg-sender"),msgType:parseInt(row.getAttribute("data-msg-type"))||0,chatWith:currentChat?currentChat.name:"",chatType:currentChat?currentChat.type:""};
   var m=$("msgContextMenu");m.style.left=e.clientX+"px";m.style.top=e.clientY+"px";m.classList.add("visible");
   $("msgRecallItem").style.display=(contextMsgData.sender===myUsername&&contextMsgData.time&&isWithin3Min(contextMsgData.time))?"block":"none";
 }
@@ -490,13 +606,21 @@ async function fpToggleMute() {
   } catch (e) { alert("操作失败"); }
 }
 
+function getChatCleared(){try{return JSON.parse(localStorage.getItem("chat_cleared"))||{};}catch(e){return{};}}
+function setChatCleared(v){localStorage.setItem("chat_cleared",JSON.stringify(v));}
 function fpClearChat() {
-  if (!confirm("确定清空与「" + _fpTargetName + "」的聊天记录？")) return;
-  $("messageList").innerHTML = ""; var em = $("messageEmpty"); if (em) em.style.display = "block";
+  if (!confirm("确定清空与「" + _fpTargetName + "」的聊天记录？此操作不可恢复。")) return;
   var targetId = (_fpTargetData && _fpTargetData.user_id) || _fpTargetName;
-  var k = convKey("private", targetId), d = getDeleted();
-  if (d.indexOf(k) === -1) { d.push(k); setDeleted(d); }
-  loadConversations();
+  var k = convKey("private", targetId);
+  var cleared = getChatCleared();
+  cleared[k] = new Date().toISOString();
+  setChatCleared(cleared);
+  $("messageList").innerHTML = ""; var em = $("messageEmpty"); if (em) em.style.display = "block";
+  if (currentChat && currentChat.type === "private" && currentChat.name === _fpTargetName) {
+    // 更新缓存中的 last_msg 为空
+    convListCache.forEach(function(c){ if (c.type === "private" && c.name === _fpTargetName) { c.last_msg = ""; c.last_time = ""; } });
+  }
+  renderConversations();
 }
 
 async function fpDeleteFriend() {
@@ -554,6 +678,8 @@ async function showGroupManagePanel() {
     html += '<input type="file" id="gpAvatarInput" accept="image/jpeg,image/png" style="display:none" onchange="gpUploadAvatar(event)">';
     html += '<button class="gp-btn" onclick="gpEditAnnouncement()">📢 编辑群公告</button>';
     html += '<button class="gp-btn" onclick="gpToggleMemberList()">👥 群成员管理 (' + members.length + '人)</button>';
+    var cachedJoinMode = (groupInfo && groupInfo.join_mode !== undefined) ? groupInfo.join_mode : 1;
+    html += '<div class="gp-func-row" style="padding:8px 0;font-size:13px;">🔐 入群验证 <label class="toggle-switch" style="margin-left:auto;"><input type="checkbox" id="gpJoinModeToggle" onchange="gpToggleJoinMode(this.checked)"' + (cachedJoinMode === 1 ? ' checked' : '') + '><span class="toggle-slider"></span></label></div>';
     html += '</div>';
   }
 
@@ -594,6 +720,7 @@ async function showGroupManagePanel() {
     html += '<div class="gp-func-item" onclick="gpToggleMemberList()">👥 查看群成员</div>';
   }
   html += '<div class="gp-func-item gp-func-row">🔕 消息免打扰 <label class="toggle-switch" style="margin-left:auto;"><input type="checkbox" id="gpMuteToggle" onchange="gpToggleGroupMute(this.checked)"><span class="toggle-slider"></span></label></div>';
+  html += '<div class="gp-func-item" onclick="closeModal(\'groupManagePanel\');showInviteToGroupModal()">➕ 邀请好友入群</div>';
   html += '<div class="gp-func-item" onclick="gpClearLocalChat()">🗑 清空本地聊天记录</div>';
   html += '<div class="gp-func-item" onclick="closeModal(\'groupManagePanel\');showGroupEvents()">📜 群事件日志</div>';
   if (isAdmin) {
@@ -687,17 +814,60 @@ function gpToggleMemberList() {
   var section = $("gpMemberSection"); if (section) section.style.display = _gpMemberListVisible ? "block" : "none";
 }
 
+async function gpToggleJoinMode(checked) {
+  var mode = checked ? 1 : 0;
+  var r = await GroupAPI.joinMode(currentChat.target_id, mode);
+  if (r.code === 200) {
+    groupListCache.forEach(function(g) { if (g.group_id === currentChat.target_id) g.join_mode = mode; });
+  } else { alert(r.detail || "设置失败"); showGroupManagePanel(); }
+}
+
+async function showInviteToGroupModal() {
+  try {
+    var r = await GroupAPI.invitableFriends(currentChat.target_id);
+    var friends = r.data || [];
+    var cc = $("inviteMemberCheckboxes");
+    cc.innerHTML = friends.length === 0
+      ? '<div style="color:var(--text-sub);padding:12px;text-align:center;">暂无可邀请的好友</div>'
+      : friends.map(function(f) {
+          return '<label class="modal-check-item"><input type="checkbox" value="' + escapeHtml(f.username) + '" class="invite-member-check"> ' + escapeHtml(f.username) + '</label>';
+        }).join("");
+    $("inviteToGroupModal").classList.add("visible");
+  } catch(e) { alert("获取可邀请好友列表失败"); }
+}
+
+async function inviteToGroup() {
+  var sel = [];
+  document.querySelectorAll(".invite-member-check:checked").forEach(function(cb) { sel.push(cb.value); });
+  if (sel.length === 0) { alert("请至少选择一个好友"); return; }
+  var success = 0, fail = 0;
+  for (var i = 0; i < sel.length; i++) {
+    try {
+      var r = await GroupAPI.invite(currentChat.target_id, sel[i]);
+      if (r.code === 200) { success++; }
+      else { fail++; }
+    } catch(e) { fail++; }
+  }
+  alert("成功邀请 " + success + " 人" + (fail > 0 ? "，" + fail + " 人失败" : ""));
+  closeModal("inviteToGroupModal");
+  showGroupManagePanel();
+  loadGroups();
+}
+
 async function gpToggleGroupMute(muted) {
   await GroupAPI.muteSetting(currentChat.target_id, muted);
   loadConversations();
 }
 
 function gpClearLocalChat() {
-  if (!confirm("确定清空本地聊天记录？此操作不可撤销。")) return;
+  if (!confirm("确定清空本地聊天记录？此操作不可恢复。")) return;
+  var k = convKey("group", currentChat.target_id);
+  var cleared = getChatCleared();
+  cleared[k] = new Date().toISOString();
+  setChatCleared(cleared);
   $("messageList").innerHTML = ""; var em = $("messageEmpty"); if (em) em.style.display = "block";
-  var k = convKey("group", currentChat.target_id), d = getDeleted();
-  if (d.indexOf(k) === -1) { d.push(k); setDeleted(d); }
-  loadConversations();
+  convListCache.forEach(function(c){ if (c.type === "group" && c.target_id === currentChat.target_id) { c.last_msg = ""; c.last_time = ""; } });
+  renderConversations();
 }
 
 async function gpShowGroupAnnouncement() {
@@ -772,7 +942,7 @@ window.handleApply=async function(id,op){await FriendAPI.dealApply(id,op);loadFr
 function showCreateGroupModal(){var d=$("plusDropdown");if(d)d.classList.remove("visible");var cc=$("groupMemberCheckboxes");cc.innerHTML=friendListCache.length===0?'<div style="color:var(--text-sub);">暂无好友</div>':friendListCache.map(function(n){return'<label class="modal-check-item"><input type="checkbox" value="'+escapeHtml(n)+'" class="member-check"> '+escapeHtml(n)+'</label>';}).join("");$("newGroupName").value="";$("createGroupModal").classList.add("visible");}
 async function createGroup(){var n=$("newGroupName").value.trim(),sel=[];document.querySelectorAll(".member-check:checked").forEach(function(cb){sel.push(cb.value);});var r=await GroupAPI.create(n);if(r.code!==200){alert(r.detail||"失败");return;}for(var i=0;i<sel.length;i++)await GroupAPI.invite(r.group_id,sel[i]);$("createGroupModal").classList.remove("visible");loadGroups();loadConversations();}
 async function leaveCurrentGroup(){if(!currentChat||currentChat.type!=="group")return;if(!confirm("确定退出？"))return;await GroupAPI.leave(currentChat.target_id);currentChat=null;resetChatView();loadConversations();loadGroups();}
-function resetChatView(){$("chatTitle").textContent="欢迎";$("chatSubtitle").textContent="";$("messageList").innerHTML='<div class="message-empty" id="messageEmpty"><div class="empty-icon">💬</div><div class="empty-text">选择左侧会话开始聊天</div><div class="empty-sub">好友消息、群聊消息都在这里<br>开启你的数字方舟之旅 ✨</div></div>';$("messageEmpty").style.display="block";$("chatInputBar").style.display="none";$("topbarActions").innerHTML='<div class="theme-toggle" id="themeToggle" onclick="toggleTheme()">'+(getTheme()==="dark"?"☀️":"🌙")+'</div><div class="plus-menu-wrapper" id="plusMenuWrapper"><button class="plus-btn" id="plusBtn">+</button><span class="plus-badge" id="plusBadge"></span><div class="plus-dropdown" id="plusDropdown"><div class="plus-dropdown-item" onclick="showAddFriendModal()"><span class="plus-dropdown-icon">👤</span><span>添加好友</span></div><div class="plus-dropdown-item" onclick="showCreateGroupModal()"><span class="plus-dropdown-icon">👥</span><span>发起群聊</span></div></div></div>';bindPlusMenu();loadApplyBadge();}
+function resetChatView(){$("chatTitle").textContent="欢迎";$("chatSubtitle").textContent="";$("messageList").innerHTML='<div class="message-empty" id="messageEmpty"><div class="empty-icon">💬</div><div class="empty-text">选择左侧会话开始聊天</div><div class="empty-sub">好友消息、群聊消息都在这里<br>开启你的数字方舟之旅 ✨</div></div>';$("messageEmpty").style.display="block";$("chatInputBar").style.display="none";$("topbarActions").innerHTML='<div class="theme-toggle" id="themeToggle" onclick="toggleTheme()">'+(getTheme()==="dark"?"☀️":"🌙")+'</div><div class="plus-menu-wrapper" id="plusMenuWrapper"><button class="plus-btn" id="plusBtn">+</button><span class="plus-badge" id="plusBadge"></span><div class="plus-dropdown" id="plusDropdown"><div class="plus-dropdown-item" onclick="showAddFriendModal()"><span class="plus-dropdown-icon">👤</span><span>添加好友</span></div><div class="plus-dropdown-item" onclick="showCreateGroupModal()"><span class="plus-dropdown-icon">👥</span><span>发起群聊</span></div><div class="plus-dropdown-item" onclick="showFriendRequests()"><span class="plus-dropdown-icon">👋</span><span>新朋友</span><span id="friendReqBadge" style="color:var(--unread);font-size:11px;margin-left:auto;"></span></div><div class="plus-dropdown-item" onclick="showGroupInvites()"><span class="plus-dropdown-icon">🔔</span><span>群通知</span><span id="groupInviteBadge" style="color:var(--unread);font-size:11px;margin-left:auto;"></span></div></div></div>';bindPlusMenu();loadApplyBadge();}
 
 /* ==================== 表情 ==================== */
 function buildEmojiPanel(){var p=$("emojiPanel");if(!p)return;p.innerHTML="";

@@ -36,15 +36,18 @@ def get_logger(name: str) -> logging.Logger:
         logger.addHandler(console)
 
         # 文件 handler（按大小轮转，单文件最大 10MB，保留 5 个备份）
-        file_handler = RotatingFileHandler(
-            os.path.join(LOG_DIR, "app.log"),
-            maxBytes=10 * 1024 * 1024,
-            backupCount=5,
-            encoding="utf-8"
-        )
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(LOG_FORMAT)
-        logger.addHandler(file_handler)
+        try:
+            file_handler = RotatingFileHandler(
+                os.path.join(LOG_DIR, "app.log"),
+                maxBytes=10 * 1024 * 1024,
+                backupCount=5,
+                encoding="utf-8"
+            )
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(LOG_FORMAT)
+            logger.addHandler(file_handler)
+        except PermissionError:
+            pass
 
     return logger
 

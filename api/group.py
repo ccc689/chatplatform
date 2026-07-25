@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from database.db import get_db, User, FriendRelation, ChatMessage, ChatGroup, GroupMember
 from database.models.chat import GroupEvent, GroupJoinRequest, GroupMuteSetting
 from utils.security import get_current_user_from_token
+from utils.ws_manager import manager
 from utils.logger import get_logger
 
 router = APIRouter(prefix="/group", tags=["群聊模块"])
@@ -168,6 +169,7 @@ def get_group_list(token: str, db: Session = Depends(get_db)):
     data = [{
         "group_id": g.id, "group_name": g.group_name, "owner_id": g.owner_id,
         "admin_ids": g.admin_ids or [], "avatar": g.avatar or "",
+        "join_mode": g.join_mode if g.join_mode is not None else 1,
         "create_at": g.create_at.strftime("%Y-%m-%d %H:%M:%S") if g.create_at else ""
     } for g in groups]
     return {"code": 200, "data": data}
@@ -206,9 +208,13 @@ def get_group_members(token: str, group_id: int, db: Session = Depends(get_db)):
     return {"code": 200, "data": data, "my_role": my_role}
 
 
-# ---------- 邀请好友入群 ----------
+# ---------- 邀请好友入群（统一流程：邀请 → 被邀请者同意 → 入群） ----------
 @router.post("/join")
 def invite_member(req: GroupInviteReq, db: Session = Depends(get_db)):
+    """邀请好友入群。无论 join_mode 是什么，都需要被邀请者同意后才能入群。
+    join_mode=0(自由加入): 邀请直接等待被邀请者同意(status=3)
+    join_mode=1(需验证):   邀请需管理员审批(status=0)，审批通过(status=3)后被邀请者同意
+    """
     current_uid = get_current_user_from_token(req.token)
     group = db.query(ChatGroup).filter(ChatGroup.id == req.group_id, ChatGroup.is_disband == 0).first()
     if not group:
@@ -236,29 +242,60 @@ def invite_member(req: GroupInviteReq, db: Session = Depends(get_db)):
         GroupMember.group_id == req.group_id, GroupMember.user_id == target.id, GroupMember.is_quit == 0
     ).first()
     if exist:
-        raise HTTPException(status_code=400, detail="该用户已在群中")
+        raise HTTPException(status_code=400, detail="该用户已在群内")
 
-    if group.join_mode == 1 and not _check_role(my_role, "admin"):
-        # 验证模式需管理员同意，创建入群申请
-        req_exist = db.query(GroupJoinRequest).filter(
-            GroupJoinRequest.group_id == req.group_id,
-            GroupJoinRequest.applicant_id == target.id,
-            GroupJoinRequest.status == 0
-        ).first()
-        if req_exist:
-            raise HTTPException(status_code=400, detail="已有待处理的入群申请")
-        jr = GroupJoinRequest(group_id=req.group_id, applicant_id=target.id, inviter_id=current_uid)
+    # 检查是否有待处理的邀请
+    req_exist = db.query(GroupJoinRequest).filter(
+        GroupJoinRequest.group_id == req.group_id,
+        GroupJoinRequest.applicant_id == target.id,
+        GroupJoinRequest.status.in_([0, 3])
+    ).first()
+    if req_exist:
+        raise HTTPException(status_code=400, detail="已有待处理的入群邀请")
+
+    inviter_name = db.query(User.username).filter(User.id == current_uid).scalar() or "未知"
+
+    if group.join_mode == 1:
+        # 需验证模式：status=0 等待管理员审批
+        jr = GroupJoinRequest(group_id=req.group_id, applicant_id=target.id, inviter_id=current_uid, status=0)
         db.add(jr)
         db.commit()
-        return {"code": 200, "msg": "入群申请已发送，等待管理员审批"}
-
-    # 自由模式或管理员直接邀请
-    member = GroupMember(group_id=req.group_id, user_id=target.id, role=0)
-    db.add(member)
-    _log_event(db, req.group_id, "join", current_uid, target.id)
-    db.commit()
-    logger.info(f"邀请入群 group_id={req.group_id} inviter_uid={current_uid} new_uid={target.id}")
-    return {"code": 200, "msg": f"已将 {target.username} 拉入群聊"}
+        # 通知管理员有新的入群申请
+        try:
+            admin_ids = set(group.admin_ids or [])
+            admin_ids.add(group.owner_id)
+            online_admins = manager.get_online_users() & admin_ids
+            import asyncio
+            for aid in online_admins:
+                if aid != current_uid:
+                    asyncio.ensure_future(manager.send_personal_msg(aid, {
+                        "type": "group_sys_notify", "group_id": req.group_id,
+                        "notify_type": "invite_pending", "operator_name": inviter_name,
+                        "target_name": target.username,
+                        "desc": f"{inviter_name} 邀请了 {target.username} 入群，等待审批"
+                    }))
+        except Exception:
+            pass
+        logger.info(f"入群邀请(需审批) group_id={req.group_id} inviter={inviter_name} target={target.username}")
+        return {"code": 200, "msg": "入群邀请已发送，等待管理员审批通过后由被邀请者确认"}
+    else:
+        # 自由加入模式：status=3 直接等待被邀请者同意
+        jr = GroupJoinRequest(group_id=req.group_id, applicant_id=target.id, inviter_id=current_uid, status=3)
+        db.add(jr)
+        db.commit()
+        # 实时通知被邀请者
+        try:
+            import asyncio
+            asyncio.ensure_future(manager.send_personal_msg(target.id, {
+                "type": "group_sys_notify", "group_id": req.group_id,
+                "notify_type": "invite", "operator_name": inviter_name,
+                "target_name": target.username,
+                "desc": f"{inviter_name} 邀请你加入群聊「{group.group_name}」"
+            }))
+        except Exception:
+            pass
+        logger.info(f"入群邀请(自由加入) group_id={req.group_id} inviter={inviter_name} target={target.username}")
+        return {"code": 200, "msg": f"已向 {target.username} 发送入群邀请，等待对方同意"}
 
 
 # ---------- 群历史消息 ----------
@@ -552,6 +589,36 @@ def unmute_member(req: GroupMemberOpReq, db: Session = Depends(get_db)):
     return {"code": 200, "msg": "已解除禁言"}
 
 
+# ---------- 可邀请好友列表 ----------
+@router.get("/invitable_friends")
+def get_invitable_friends(token: str, group_id: int, db: Session = Depends(get_db)):
+    """返回当前用户可邀请入群的好友列表（排除已在群内或已有待处理邀请的好友）"""
+    current_uid = get_current_user_from_token(token)
+    records = db.query(FriendRelation).filter(
+        ((FriendRelation.user_id == current_uid) | (FriendRelation.friend_id == current_uid)),
+        FriendRelation.status == 1
+    ).all()
+    friend_ids = set()
+    for rel in records:
+        fid = rel.friend_id if rel.user_id == current_uid else rel.user_id
+        friend_ids.add(fid)
+    in_group = db.query(GroupMember.user_id).filter(
+        GroupMember.group_id == group_id, GroupMember.is_quit == 0
+    ).all()
+    in_group_ids = {m.user_id for m in in_group}
+    pending = db.query(GroupJoinRequest.applicant_id).filter(
+        GroupJoinRequest.group_id == group_id,
+        GroupJoinRequest.status.in_([0, 3])
+    ).all()
+    pending_ids = {p.applicant_id for p in pending}
+    available = friend_ids - in_group_ids - pending_ids
+    users = db.query(User.id, User.username, User.avatar).filter(
+        User.id.in_(available)
+    ).order_by(User.username.asc()).all()
+    data = [{"user_id": u.id, "username": u.username, "avatar": u.avatar or ""} for u in users]
+    return {"code": 200, "data": data}
+
+
 # ---------- 修改群资料 ----------
 @router.post("/update")
 def update_group(req: GroupUpdateReq, db: Session = Depends(get_db)):
@@ -744,3 +811,87 @@ def get_group_mute_setting(token: str, group_id: int, db: Session = Depends(get_
         GroupMuteSetting.group_id == group_id, GroupMuteSetting.user_id == current_uid
     ).first()
     return {"code": 200, "is_muted": setting.is_muted if setting else 0}
+
+
+# ========== 邀请处理（被邀请者视角） ==========
+
+class InviteDealReq(BaseModel):
+    token: str
+    invite_id: int
+    operate: int  # 1=同意 0=拒绝
+
+
+@router.get("/invite/list")
+def get_my_invites(token: str, db: Session = Depends(get_db)):
+    """获取我被邀请入群的列表"""
+    current_uid = get_current_user_from_token(token)
+    invites = db.query(GroupJoinRequest).filter(
+        GroupJoinRequest.applicant_id == current_uid,
+        GroupJoinRequest.status.in_([0, 3])
+    ).order_by(GroupJoinRequest.create_at.desc()).all()
+
+    user_ids = set()
+    group_ids = set()
+    for inv in invites:
+        if inv.inviter_id:
+            user_ids.add(inv.inviter_id)
+        group_ids.add(inv.group_id)
+    user_map = _get_user_map(db, user_ids)
+    groups = db.query(ChatGroup.id, ChatGroup.group_name).filter(ChatGroup.id.in_(group_ids)).all()
+    group_map = {g.id: g.group_name for g in groups}
+
+    data = [{
+        "invite_id": inv.id, "group_id": inv.group_id,
+        "group_name": group_map.get(inv.group_id, ""),
+        "inviter_name": user_map.get(inv.inviter_id, "") if inv.inviter_id else "",
+        "status": inv.status,
+        "can_accept": inv.status == 3,
+        "create_at": inv.create_at.strftime("%Y-%m-%d %H:%M:%S") if inv.create_at else ""
+    } for inv in invites]
+    return {"code": 200, "data": data}
+
+
+@router.get("/invite/count")
+def get_invite_count(token: str, db: Session = Depends(get_db)):
+    """获取待处理的入群邀请数量"""
+    current_uid = get_current_user_from_token(token)
+    count = db.query(GroupJoinRequest).filter(
+        GroupJoinRequest.applicant_id == current_uid,
+        GroupJoinRequest.status.in_([0, 3])
+    ).count()
+    return {"code": 200, "count": count}
+
+
+@router.post("/invite/deal")
+def deal_invite(req: InviteDealReq, db: Session = Depends(get_db)):
+    """被邀请者处理入群邀请（同意/拒绝）"""
+    current_uid = get_current_user_from_token(req.token)
+    inv = db.query(GroupJoinRequest).filter(
+        GroupJoinRequest.id == req.invite_id, GroupJoinRequest.applicant_id == current_uid
+    ).first()
+    if not inv:
+        raise HTTPException(status_code=404, detail="邀请不存在")
+    if inv.status != 3:
+        raise HTTPException(status_code=400, detail="该邀请尚未通过审批，无法处理")
+
+    group = db.query(ChatGroup).filter(ChatGroup.id == inv.group_id, ChatGroup.is_disband == 0).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="群聊不存在或已解散")
+
+    if req.operate == 1:
+        exist = db.query(GroupMember).filter(
+            GroupMember.group_id == inv.group_id, GroupMember.user_id == current_uid, GroupMember.is_quit == 0
+        ).first()
+        if exist:
+            inv.status = 1; db.commit()
+            raise HTTPException(status_code=400, detail="你已在群内")
+        inv.status = 1
+        member = GroupMember(group_id=inv.group_id, user_id=current_uid, role=0)
+        db.add(member)
+        _log_event(db, inv.group_id, "join", current_uid, current_uid)
+        db.commit()
+        return {"code": 200, "msg": f"已加入群聊「{group.group_name}」"}
+    else:
+        inv.status = 2
+        db.commit()
+        return {"code": 200, "msg": "已拒绝入群邀请"}
