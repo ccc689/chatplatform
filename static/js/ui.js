@@ -425,7 +425,7 @@ function renderConversations(){
     var avatarUrl=cn.avatar||"",avatarHtml="";
     if(avatarUrl){avatarHtml='<img src="'+escapeHtml(avatarUrl)+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentElement.textContent=\''+(cn.type==="group"?"👥":"👤")+'\';">';}
     else {avatarHtml=(cn.type==="group"?"👥":"👤");}
-    return'<div class="conv-item'+active+(cn._pinned?" pinned":"")+'" onclick="openConversation(\''+cn.type+'\','+cn.target_id+',\''+escapeHtml(cn.name)+'\')" oncontextmenu="onConvContext(event,\''+cn.type+'\','+cn.target_id+',\''+escapeHtml(cn.name)+'\')" data-conv-key="'+k+'"><div class="conv-avatar'+(cn.type==="group"?" group-avatar":"")+'">'+avatarHtml+'<span class="conv-onli++';"></span></div><div class="conv-info"><div class="conv-name-row"><div class="conv-name">'+(cn._pinned?"📌 ":"")+escapeHtml(cn._note||cn.name)+'</div></div><div class="conv-preview">'+escapeHtml(cn.last_msg||"").slice(0,40)+'</div>'+(cn.online_status!==undefined&&cn.type==="private"?'<span class="friend-online-dot '+(cn.online_status===1?"online":"offline")+'"></span>':"")+'+(cn.status_message&&cn.type==="private"?'<span class="conv-cstatus">'+escapeHtml(cn.status_message)+'</span>':"")+'</div><div class="conv-meta"><div class="conv-time">'+formatWechatTime(cn.last_time)+'</div>'+(cn.unread>0?'<div class="conv-badge">'+(cn.unread>9?"9+":cn.unread)+'</div>':"")+'</div>'+(cn._muted?'<span class="dnd-icon">🔕</span>':"")+'</div>';
+    return'<div class="conv-item'+active+(cn._pinned?" pinned":"")+'" onclick="openConversation(\''+cn.type+'\','+cn.target_id+',\''+escapeHtml(cn.name)+'\')" oncontextmenu="onConvContext(event,\''+cn.type+'\','+cn.target_id+',\''+escapeHtml(cn.name)+'\')" data-conv-key="'+k+'"><div class="conv-avatar'+(cn.type==="group"?" group-avatar":"")+'">'+avatarHtml+'</div><div class="conv-info"><div class="conv-name-row"><div class="conv-name">'+(cn._pinned?"📌 ":"")+escapeHtml(cn._note||cn.name)+'</div></div><div class="conv-preview">'+escapeHtml(cn.last_msg||"").slice(0,40)+'</div>'+(cn.online_status!==undefined&&cn.type==="private"?'<span class="friend-online-dot '+(cn.online_status===1?"online":"offline")+'"></span>':"")+'+((cn.type==="private"?'<span class="conv-cstatus">'+escapeHtml(cn.status_message||"")+'</span>':"")+</div><div class="conv-meta"><div class="conv-time">'+formatWechatTime(cn.last_time)+'</div>'+(cn.unread>0?'<div class="conv-badge">'+(cn.unread>9?"9+":cn.unread)+'</div>':"")+'</div>'+(cn._muted?'<span class="dnd-icon">🔕</span>':"")+'</div>';
   }).join("");
 }
 function onSearchConversations(){
@@ -478,83 +478,7 @@ async function onFileSelect(e,mt){var f=e.target.files[0];if(!f)return;e.target.
 /* ==================== 消息气泡（带头像+已读+时间格式） ==================== */
 function appendBubble(side,sender,content,msgType,time,msgId,senderAvatar,tempKey){
   var list=$("messageList"),em=$("messageEmpty");if(em)em.style.display="none";
-  if(time){try{var d=time.slice(0,10);if(lastMsgDate&&lastMsgDate!==d){var dv=document.createElement("div");dv.className="time-divider";dv.innerHTML="<span>"+(time?time.slice(0,16):"")+"</span>";list.appendChild(dv);}lastMsgDate=d;}catch(e){}}
-  var row=document.createElement("div");row.className="msg-row "+side;
-  var key=msgId||tempKey||("k"+Date.now()+Math.random());row.setAttribute("data-msg-key",key);row.setAttribute("data-msg-id",msgId||"");row.setAttribute("data-msg-content",content||"");row.setAttribute("data-msg-time",time||"");row.setAttribute("data-msg-sender",sender||"");row.setAttribute("data-msg-type",msgType||0);if(tempKey)row.setAttribute("data-temp-key",tempKey);
-  row.addEventListener("contextmenu",function(e){onMsgContext(e,row);});
-
-  // 对方消息头像
-  if(side==="other"){
-    var av=document.createElement("div");av.className="msg-sender-avatar";
-    var avatarUrl=senderAvatar||getAvatarForUser(sender);
-    if(avatarUrl){var aimg=document.createElement("img");aimg.src=avatarUrl;aimg.style.width="100%";aimg.style.height="100%";aimg.style.borderRadius="50%";aimg.style.objectFit="cover";aimg.onerror=function(){av.textContent=(sender||"?").charAt(0).toUpperCase();};av.appendChild(aimg);}
-    else{av.textContent=(sender||"?").charAt(0).toUpperCase();}
-    row.appendChild(av);
-  }
-
-  var wrap=document.createElement("div");wrap.className="msg-inner-wrap";
-  if(side==="other"){var nm=document.createElement("div");nm.className="msg-sender-name";nm.textContent=sender;wrap.appendChild(nm);}
-  var bubble=document.createElement("div");bubble.className="msg-bubble";
-  var inner=escapeHtml(content);inner=emojiReplace(inner);
-  if(msgType===1)inner='<img src="'+escapeHtml(content)+'" class="msg-image" onclick="previewImage(\''+escapeHtml(content)+'\')" onerror="this.style.display=\'none\'">';
-  else if(msgType===2){var ext=(content.split(".").pop()||"").toLowerCase(),icons={pdf:"📕",docx:"📘",xlsx:"📗",pptx:"📙"};inner='<a href="'+escapeHtml(content)+'" target="_blank" class="msg-file-link"><span class="file-icon">'+(icons[ext]||"📎")+'</span>'+escapeHtml(content.split("/").pop())+'</a>';}
-  bubble.innerHTML=inner;wrap.appendChild(bubble);
-
-  // 时间
-  var td=document.createElement("div");td.className="msg-time-text";td.textContent=time?formatWechatTime(time):"";wrap.appendChild(td);
-
-  // 已读状态占位（仅自己发的消息有占位，默认空白，等后端推送 read_receipt 后才显示）
-  if(side==="me"){
-    var rs=document.createElement("div");rs.className="msg-read-status";rs.setAttribute("data-read-key",key);
-    // 初始为空，不显示任何文字
-    if(currentChat&&currentChat.type==="group"){rs.classList.add("clickable");rs.onclick=function(){showReadMembers(key);};}
-    wrap.appendChild(rs);
-  }
-
-  // 多选模式勾选框
-  var cb=document.createElement("input");cb.type="checkbox";cb.className="msg-checkbox";cb.setAttribute("data-msg-key",key);
-  cb.onchange=function(){if(cb.checked)multiSelected.add(key);else multiSelected.delete(key);updateMultiCount();};
-  row.appendChild(cb);
-
-  row.appendChild(wrap);
-  if(multiSelectMode)row.classList.add("multiselect-active"),cb.style.display="block";
-  list.appendChild(row);list.scrollTop=list.scrollHeight;
-}
-function getAvatarForUser(username){if(!username)return"";for(var i=0;i<convListCache.length;i++){var c=convListCache[i];if(c.type==="private"&&c.name===username&&c.avatar)return c.avatar;}return"";}
-
-/* ==================== 消息右键菜单 ==================== */
-function onMsgContext(e,row){
-  if(multiSelectMode){e.preventDefault();var cb=row.querySelector(".msg-checkbox");if(cb){cb.checked=!cb.checked;if(cb.checked)multiSelected.add(row.getAttribute("data-msg-key"));else multiSelected.delete(row.getAttribute("data-msg-key"));updateMultiCount();}return;}
-  e.preventDefault();
-  contextMsgData={key:row.getAttribute("data-msg-key"),id:row.getAttribute("data-msg-id"),content:row.getAttribute("data-msg-content"),time:row.getAttribute("data-msg-time"),sender:row.getAttribute("data-msg-sender"),msgType:parseInt(row.getAttribute("data-msg-type"))||0,chatWith:currentChat?currentChat.name:"",chatType:currentChat?currentChat.type:""};
-  var m=$("msgContextMenu");m.style.left=e.clientX+"px";m.style.top=e.clientY+"px";m.classList.add("visible");
-  $("msgRecallItem").style.display=(contextMsgData.sender===myUsername&&contextMsgData.time&&isWithin3Min(contextMsgData.time))?"block":"none";
-}
-function isWithin3Min(t){try{return(Date.now()-new Date(t.replace(/-/g,"/")).getTime())<3*60*1000;}catch(e){return false;}}
-function copyMsgText(){if(contextMsgData)navigator.clipboard.writeText(contextMsgData.content).catch(function(){});$("msgContextMenu").classList.remove("visible");}
-function recallMsg(){
-  if(!contextMsgData||!isWithin3Min(contextMsgData.time)){alert("仅支持撤回3分钟内的消息");$("msgContextMenu").classList.remove("visible");return;}
-  $("msgContextMenu").classList.remove("visible");
-  // 立即更新本地UI
-  document.querySelectorAll('.msg-row[data-msg-key="'+contextMsgData.key+'"]').forEach(function(r){
-    var bubble=r.querySelector(".msg-bubble");
-    if(bubble){bubble.innerHTML='<span style="color:var(--text-sub);font-style:italic;">你撤回了一条消息</span>';}
-  });
-  // 通过 WebSocket 发送撤回
-  var msgId=contextMsgData.id;
-  if(currentChat&&currentChat.type==="private"){
-    chatSocket.sendRecall(msgId, currentChat.name);
-  }
-}
-function deleteMsgLocal(){if(!contextMsgData)return;document.querySelectorAll('.msg-row[data-msg-key="'+contextMsgData.key+'"]').forEach(function(r){r.remove();});$("msgContextMenu").classList.remove("visible");}
-function forwardMsg(){if(!contextMsgData||!contextMsgData.content)return;$("msgContextMenu").classList.remove("visible");showForwardModal(contextMsgData.content);}
-function enterMultiSelect(){if(!contextMsgData)return;$("msgContextMenu").classList.remove("visible");multiSelectMode=true;multiSelected.clear();multiSelected.add(contextMsgData.key);$("chatMain").classList.add("multiselect-active");$("multiselectBar").classList.add("visible");document.querySelectorAll(".msg-row").forEach(function(r){r.classList.add("multiselect-active");r.querySelector(".msg-checkbox").style.display="block";});document.querySelectorAll('.msg-row[data-msg-key="'+contextMsgData.key+'"] .msg-checkbox').forEach(function(c){c.checked=true;});updateMultiCount();}
-function exitMultiSelect(){multiSelectMode=false;multiSelected.clear();$("chatMain").classList.remove("multiselect-active");$("multiselectBar").classList.remove("visible");document.querySelectorAll(".msg-row").forEach(function(r){r.classList.remove("multiselect-active");var cb=r.querySelector(".msg-checkbox");if(cb){cb.style.display="none";cb.checked=false;}});}
-function updateMultiCount(){$("selectedCount").textContent="已选 "+multiSelected.size+" 条";}
-
-/* ==================== 批量操作 ==================== */
-function multiDelete(){multiSelected.forEach(function(k){document.querySelectorAll('.msg-row[data-msg-key="'+k+'"]').forEach(function(r){r.remove();});});exitMultiSelect();}
-function showForwardModal(content){$("forwardList").innerHTML='<p style="font-size:13px;color:var(--text-sub);margin-bottom:10px;">选择转发目标：</p>'+friendListCache.map(function(n){return'<div class="search-item" onclick="doForward(\''+escapeHtml(n)+'\');closeModal(\'forwardModal\');">👤 '+escapeHtml(n)+'</div>';}).join("")+groupListCache.map(function(g){return'<div class="search-item" onclick="doForwardGroup('+g.group_id+');closeModal(\'forwardModal\');">👥 '+escapeHtml(g.group_name)+'</div>';}).join("");$("forwardModal").classList.add("visible");}
+  if(time){try{var d=time.slice(0,10);if(lastMsgDate&&lastMsgDate!==d){var dv=document.createElement("div");dv.className="time-divider";dv.innerHTML="<span>"+(time?time.slice(0,16):"")+(cn.type==="private"?'<span class="conv-cstatus">'+escapeHtml(cn.status_message||"")+'</span>':"")+</div>';}).join("")+groupListCache.map(function(g){return'<div class="search-item" onclick="doForwardGroup('+g.group_id+');closeModal(\'forwardModal\');">👥 '+escapeHtml(g.group_name)+'</div>';}).join("");$("forwardModal").classList.add("visible");}
 function multiForward(){var contents=[];multiSelected.forEach(function(k){var el=document.querySelector('.msg-row[data-msg-key="'+k+'"]');if(el)contents.push(el.getAttribute("data-msg-content"));});if(contents.length===0)return;showForwardModal(contents.join("\n---\n"));}
 function doForward(uname){var c=contextMsgData?contextMsgData.content:(multiSelected.size>0?(document.querySelector('.msg-row[data-msg-key="'+Array.from(multiSelected)[0]+'"]')||{}).getAttribute("data-msg-content")||"":"");if(c&&uname)chatSocket.sendPrivate(uname,c,0);exitMultiSelect();}
 function doForwardGroup(gid){var c=contextMsgData?contextMsgData.content:"";if(c&&gid)chatSocket.sendGroup(gid,c,0);exitMultiSelect();}
