@@ -290,12 +290,10 @@
     <div class="sidebar-top">
       <div class="sidebar-top-left">
         <div class="user-avatar" id="myAvatar" onclick="showMyProfile()" style="cursor:pointer;"><img id="sidebarAvatarImg" src="" style="display:none;width:100%;height:100%;border-radius:50%;object-fit:cover;"><span id="sidebarAvatarFallback">😊</span><span class="online-dot" id="sidebarOnlineDot"></span></div>
-        <div class="sidebar-user-meta" onclick="showMyProfile()" style="cursor:pointer;">
-          <span class="user-name" id="myUsername">加载中</span>
-          <span class="self-status" id="myStatusDisplay"></span>
-        </div>
-        <span id="onlineStatusToggle" class="online-toggle online" onclick="event.stopPropagation();toggleOnlineStatus()" title="点击切换">在线</span>
-      </div><span class="logout-icon" id="logoutBtn" title="退出登录">⏻</span>
+        <span class="user-name" id="myUsername">加载中</span>
+        <span id="onlineDot" class="online-dot-btn online" onclick="toggleOnlineStatus()" title="点击切换在线状态"></span>
+        <span class="self-status" id="myStatusDisplay" onclick="showStatusEditModal()" title="点击修改个性状态">未设置</span>
+      </div>
     </div>
     <div class="sidebar-search"><div class="search-box"><span class="search-icon-inside">🔍</span><input type="text" placeholder="搜索" id="convSearchInput" oninput="onSearchConversations()" onfocus="onSearchConversations()"></div><div class="search-dropdown" id="searchDropdown"></div></div>
     <div class="conversation-list" id="conversationList">
