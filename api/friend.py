@@ -89,6 +89,15 @@ def apply_friend(body: FriendApplyReq, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_apply)
 
+    # 实时通知对方有新好友申请
+    try:
+        from_user = db.query(User.username).filter(User.id == current_uid).scalar() or "未知"
+        manager.notify_user(target_uid, {
+            "type": "friend_notify", "action": "new_request",
+            "from_username": from_user, "from_uid": current_uid
+        })
+    except Exception: pass
+
     logger.info(f"好友申请 uid={current_uid} target_uid={target_uid} apply_id={new_apply.id}")
     return {"code": 200, "msg": "好友申请发送成功", "apply_id": new_apply.id}
 
@@ -123,14 +132,31 @@ def deal_friend_apply(body: DealApplyReq, db: Session = Depends(get_db)):
     if not record:
         raise HTTPException(status_code=400, detail="不存在该好友申请")
 
+    requester_uid = record.user_id
     if body.operate == 1:
         record.status = 1
         db.commit()
+        # 实时通知申请者：对方已同意
+        try:
+            accepter_name = db.query(User.username).filter(User.id == current_uid).scalar() or "未知"
+            manager.notify_user(requester_uid, {
+                "type": "friend_notify", "action": "request_accepted",
+                "from_username": accepter_name, "from_uid": current_uid
+            })
+        except Exception: pass
         logger.info(f"好友申请同意 apply_id={body.apply_id} uid={current_uid}")
         return {"code": 200, "msg": "已同意好友申请"}
     else:
         db.delete(record)
         db.commit()
+        # 实时通知申请者：对方已拒绝
+        try:
+            rejecter_name = db.query(User.username).filter(User.id == current_uid).scalar() or "未知"
+            manager.notify_user(requester_uid, {
+                "type": "friend_notify", "action": "request_rejected",
+                "from_username": rejecter_name, "from_uid": current_uid
+            })
+        except Exception: pass
         logger.info(f"好友申请拒绝 apply_id={body.apply_id} uid={current_uid}")
         return {"code": 200, "msg": "已拒绝好友申请"}
 
@@ -337,6 +363,14 @@ def delete_friend(req: FriendOpReq, db: Session = Depends(get_db)):
     ).delete()
 
     db.commit()
+    # 实时通知对方
+    try:
+        deleter_name = db.query(User.username).filter(User.id == current_uid).scalar() or "未知"
+        manager.notify_user(friend.id, {
+            "type": "friend_notify", "action": "friend_deleted",
+            "from_username": deleter_name, "from_uid": current_uid
+        })
+    except Exception: pass
     logger.info(f"删除好友 uid={current_uid} friend={friend.username}")
     return {"code": 200, "msg": f"已删除好友 {friend.username}"}
 

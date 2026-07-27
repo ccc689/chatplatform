@@ -173,6 +173,7 @@ async def websocket_chat_endpoint(websocket: WebSocket):
 
                     push_data = {
                         "type": "new_msg",
+                        "id": str(new_msg.id),
                         "sender_username": current_username,
                         "sender_id": uid,
                         "content": content,
@@ -180,6 +181,13 @@ async def websocket_chat_endpoint(websocket: WebSocket):
                         "create_at": new_msg.create_at.strftime("%Y-%m-%d %H:%M:%S")
                     }
                     await manager.send_personal_msg(target_uid, push_data)
+
+                    # 回声给发送者：带上数据库 ID，用于撤回等操作
+                    await websocket.send_json({
+                        "type": "msg_sent_ack",
+                        "temp_key": msg_data.get("temp_key", ""),
+                        "message_id": str(new_msg.id)
+                    })
 
                     logger.info(f"[WS私聊] {current_username}({uid}) -> {receiver_username}({target_uid}): {content[:30]}")
                 except Exception as e:
@@ -253,6 +261,7 @@ async def websocket_chat_endpoint(websocket: WebSocket):
 
                     push_data = {
                         "type": "new_group_msg",
+                        "id": str(new_msg.id),
                         "group_id": group_id,
                         "sender_username": current_username,
                         "sender_id": uid,
@@ -263,6 +272,13 @@ async def websocket_chat_endpoint(websocket: WebSocket):
 
                     # 广播给在线群成员
                     await manager.send_group_msg(group_id, uid, online_members, push_data)
+
+                    # 回声给发送者：带上数据库 ID
+                    await websocket.send_json({
+                        "type": "msg_sent_ack",
+                        "temp_key": msg_data.get("temp_key", ""),
+                        "message_id": str(new_msg.id)
+                    })
 
                     logger.info(f"[WS群聊] {current_username}({uid}) -> group({group_id}): {content[:30]} 送达{len(online_members)}人")
                 except Exception as e:
@@ -360,6 +376,55 @@ async def websocket_chat_endpoint(websocket: WebSocket):
                         logger.info(f"[WS群管理] {notify_type} group_id={gid} operator={current_username} 送达{count}人")
                     finally:
                         db2.close()
+
+            # ========== 撤回消息 ==========
+            elif msg_type == "recall_msg":
+                message_id = msg_data.get("message_id")
+                target_username = msg_data.get("target_username", "")
+                if not message_id or not target_username:
+                    await websocket.send_json({"type": "error", "msg": "缺少 message_id 或 target_username"})
+                    continue
+
+                db = await asyncio.to_thread(get_sync_db)
+                try:
+                    target_user = db.query(User).filter(User.username == target_username).first()
+                    if not target_user:
+                        await websocket.send_json({"type": "error", "msg": "目标用户不存在"})
+                        continue
+
+                    msg = db.query(ChatMessage).filter(
+                        ChatMessage.id == message_id, ChatMessage.sender_id == uid, ChatMessage.is_delete == 0
+                    ).first()
+                    if not msg:
+                        await websocket.send_json({"type": "error", "msg": "消息不存在或已撤回"})
+                        continue
+
+                    # 检查3分钟内
+                    if msg.create_at:
+                        elapsed = (datetime.now() - msg.create_at).total_seconds()
+                        if elapsed > 180:
+                            await websocket.send_json({"type": "error", "msg": "超过3分钟，无法撤回"})
+                            continue
+
+                    msg.is_delete = 1
+                    db.commit()
+
+                    # 通知对方撤回
+                    recall_data = {
+                        "type": "msg_recalled",
+                        "message_id": str(message_id),
+                        "sender_username": current_username,
+                        "target_username": target_username
+                    }
+                    await manager.send_personal_msg(target_user.id, recall_data)
+                    # 也通知自己（多端同步）
+                    await manager.send_personal_msg(uid, recall_data)
+
+                    logger.info(f"[WS撤回] {current_username} 撤回了发给 {target_username} 的消息 msg_id={message_id}")
+                except Exception as e:
+                    await websocket.send_json({"type": "error", "msg": f"撤回失败: {str(e)}"})
+                finally:
+                    db.close()
 
             # ========== 忽略未知消息类型（不报错） ==========
 

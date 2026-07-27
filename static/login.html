@@ -258,8 +258,6 @@
             <label for="loginPass">密码</label>
             <div class="input-password-wrapper">
               <input type="password" id="loginPass" placeholder="请输入密码" required autocomplete="current-password">
-              <button type="button" class="input-password-toggle" id="loginPwdToggle"
-                      onclick="togglePassword('loginPass', 'loginPwdToggle')">🙈</button>
             </div>
           </div>
 
@@ -282,12 +280,8 @@
           <div class="input-group">
             <label for="regPass">密码</label>
             <div class="input-password-wrapper">
-              <input type="password" id="regPass" placeholder="请设置密码（至少6位）" required
+              <input type="password" id="regPass" placeholder="请设置密码（至少8位）" required
                      oninput="onRegPassInput()">
-              <button type="button" class="input-clear-btn" id="regPassClearBtn"
-                      onclick="clearInput('regPass', 'regPassClearBtn'); checkPwStrength();">✕</button>
-              <button type="button" class="input-password-toggle" id="regPwdToggle"
-                      onclick="togglePassword('regPass', 'regPwdToggle')">🙈</button>
             </div>
           </div>
 
@@ -302,8 +296,6 @@
             <div class="input-password-wrapper">
               <input type="password" id="regPass2" placeholder="请再次输入密码" required
                      oninput="checkPwMatch()">
-              <button type="button" class="input-password-toggle" id="regPwdToggle2"
-                      onclick="togglePassword('regPass2', 'regPwdToggle2')">🙈</button>
             </div>
           </div>
 
@@ -343,19 +335,6 @@
     document.getElementById('matchMsg').innerHTML = '';
   }
 
-  // ====== Toggle Password Visibility ======
-  function togglePassword(inputId, toggleId) {
-    const inp = document.getElementById(inputId);
-    const btn = document.getElementById(toggleId);
-    if (inp.type === 'password') {
-      inp.type = 'text';
-      btn.textContent = '🐵';
-    } else {
-      inp.type = 'password';
-      btn.textContent = '🙈';
-    }
-  }
-
   // ====== Clear Input ======
   function toggleClearBtn(inputId, btnId) {
     const v = document.getElementById(inputId).value;
@@ -384,7 +363,7 @@
     else if (score <= 3) { bars[0].className = 'pw-strength-bar medium'; bars[1].className = 'pw-strength-bar medium'; }
     else { bars[0].className = 'pw-strength-bar strong'; bars[1].className = 'pw-strength-bar strong'; bars[2].className = 'pw-strength-bar strong'; }
   }
-  function onRegPassInput() { toggleClearBtn('regPass', 'regPassClearBtn'); checkPwStrength(); checkPwMatch(); }
+  function onRegPassInput() { checkPwStrength(); checkPwMatch(); }
   function checkPwMatch() {
     const p1 = document.getElementById('regPass').value, p2 = document.getElementById('regPass2').value;
     const el = document.getElementById('matchMsg');
@@ -424,7 +403,7 @@
     const p1 = document.getElementById('regPass').value, p2 = document.getElementById('regPass2').value;
     const msgEl = document.getElementById('registerMsg');
     if (p1 !== p2) { msgEl.textContent = '两次密码不一致'; return; }
-    if (p1.length < 6) { msgEl.textContent = '密码至少6位'; return; }
+    if (p1.length < 8) { msgEl.textContent = '密码至少8位'; return; }
     const res = await UserAPI.register(u, p1);
     if (res.code === 200) {
       msgEl.className = 'auth-msg success';

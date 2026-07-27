@@ -39,22 +39,28 @@ var chatSocket = {
     };
   },
 
-  sendPrivate: function(toUser, content, msgType) {
+  sendPrivate: function(toUser, content, msgType, tempKey) {
     this._send({
       type: "send_msg",
       receiver_username: toUser,
       content: content,
-      message_type: msgType || 0
+      message_type: msgType || 0,
+      temp_key: tempKey || ""
     });
   },
 
-  sendGroup: function(gid, content, msgType) {
+  sendGroup: function(gid, content, msgType, tempKey) {
     this._send({
       type: "send_group_msg",
       group_id: gid,
       content: content,
-      message_type: msgType || 0
+      message_type: msgType || 0,
+      temp_key: tempKey || ""
     });
+  },
+
+  sendRecall: function(msgId, targetUser) {
+    this._send({ type: "recall_msg", message_id: msgId, target_username: targetUser });
   },
 
   _send: function(data) {

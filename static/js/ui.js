@@ -10,6 +10,7 @@ var convListCache = [];
 var myUsername = "";
 var myAvatar = "";
 var myStatus = "";
+var myOnline = 1;
 var myUserId = 0;
 
 /* ==================== 个性状态预设库 ==================== */
@@ -96,7 +97,7 @@ async function onAttachSelect(e){var f=e.target.files[0];if(!f)return;e.target.v
 async function onFileSelectInternal(f,mt){if(mt===1){if(!f.type.match(/^image\/(jpeg|png)$/)){alert("仅支持JPG/PNG");return;}if(f.size>10*1024*1024){alert("最大10MB");return;}}else{var a=[".pdf",".docx",".xlsx",".pptx"],ex="."+f.name.split(".").pop().toLowerCase();if(a.indexOf(ex)===-1){alert("仅支持PDF/Word/Excel/PPT");return;}if(f.size>50*1024*1024){alert("最大50MB");return;}}var res=await apiUpload(f);if(res.code!==200){alert(res.detail||"失败");return;}if(!currentChat)return;if(currentChat.type==="private")chatSocket.sendPrivate(currentChat.name,res.file_url,mt);else chatSocket.sendGroup(currentChat.target_id,res.file_url,mt);appendBubble("me",myUsername,res.file_url,mt,formatTime(new Date()),null);}
 
 /* ==================== 个人信息 ==================== */
-async function loadMyProfile(){try{var r=await fetch("/user/profile?token="+getToken()),d=await r.json();if(d.code===200){if(d.data.user_id){myUserId=d.data.user_id;sessionStorage.setItem("my_user_id",myUserId);}if(d.data.avatar){myAvatar=d.data.avatar;sessionStorage.setItem("my_avatar",myAvatar);}if(d.data.username){myUsername=d.data.username;sessionStorage.setItem("my_username",myUsername);$("myUsername").textContent=myUsername;}if(d.data.status_message!==undefined){myStatus=d.data.status_message;sessionStorage.setItem("my_status",myStatus);}refreshMyAvatar();}}catch(e){}}
+async function loadMyProfile(){try{var r=await fetch("/user/profile?token="+getToken()),d=await r.json();if(d.code===200){if(d.data.user_id){myUserId=d.data.user_id;sessionStorage.setItem("my_user_id",myUserId);}if(d.data.avatar){myAvatar=d.data.avatar;sessionStorage.setItem("my_avatar",myAvatar);}if(d.data.username){myUsername=d.data.username;sessionStorage.setItem("my_username",myUsername);$("myUsername").textContent=myUsername;}if(d.data.status_message!==undefined){myStatus=d.data.status_message;sessionStorage.setItem("my_status",myStatus);}if(d.data.online_status!==undefined){myOnline=d.data.online_status;updateOnlineStatusUI();}refreshMyAvatar();}}catch(e){}}
 function refreshMyAvatar(){var i=$("sidebarAvatarImg"),f=$("sidebarAvatarFallback");if(myAvatar&&i){i.src=myAvatar;i.style.display="block";if(f)f.style.display="none";}else{if(i)i.style.display="none";if(f){f.style.display="flex";f.textContent=(myUsername||"?").charAt(0).toUpperCase();}}var pi=$("profileAvatarImg"),pf=$("profileAvatarFallback");if(myAvatar&&pi){pi.src=myAvatar;pi.style.display="block";if(pf)pf.style.display="none";}else{if(pi)pi.style.display="none";if(pf){pf.style.display="flex";pf.textContent=(myUsername||"?").charAt(0).toUpperCase();}}}
 function showMyProfile(){$("profileNickname").textContent=myUsername;$("profileStatus").textContent=myStatus||"未设置";refreshMyAvatar();$("nicknameEditArea").style.display="none";$("statusEditArea").style.display="none";$("myProfileModal").classList.add("visible");$("profileLogoutBtn").onclick=function(){if(confirm("确定退出？"))logout();};}
 function uploadAvatar(e){var f=e.target.files[0];if(!f)return;e.target.value="";if(!f.type.match(/^image\/(jpeg|png)$/)){alert("仅支持JPG/PNG");return;}if(f.size>5*1024*1024){alert("最大5MB");return;}var r=new FileReader();r.onload=function(ev){$("profileAvatarImg").src=ev.target.result;$("profileAvatarImg").style.display="block";$("profileAvatarFallback").style.display="none";};r.readAsDataURL(f);var fd=new FormData();fd.append("token",getToken());fd.append("file",f);fetch("/upload/file",{method:"POST",body:fd}).then(function(r){return r.json();}).then(async function(d){if(d.code===200){myAvatar=d.file_url;sessionStorage.setItem("my_avatar",myAvatar);await fetch("/user/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:getToken(),avatar:myAvatar})});refreshMyAvatar();}else alert("上传失败");});}
@@ -168,6 +169,7 @@ async function saveStatusFromModal(){
   var d = await r.json();
   if(d.code===200){
     myStatus = d.data.status_message || "";
+    if(d.data.online_status!==undefined){myOnline=d.data.online_status;updateOnlineStatusUI();}
     sessionStorage.setItem("my_status", myStatus);
     $("profileStatus").textContent = myStatus || "未设置";
     updateMyStatusDisplay();
@@ -240,6 +242,34 @@ function multiFav(){var favs=getFavs();multiSelected.forEach(function(k){var el=
 /* ==================== WebSocket ==================== */
 function handleWsMessage(msg){
   if(msg.type==="error")return;
+  // 好友实时通知
+  if(msg.type==="friend_notify"){
+    if(msg.action==="new_request"){loadApplyBadge();}
+    else if(msg.action==="request_accepted"){loadFriends();loadConversations();loadApplyBadge();}
+    else if(msg.action==="request_rejected"){loadApplyBadge();}
+    else if(msg.action==="friend_deleted"){loadFriends();loadConversations();loadApplyBadge();
+      if(currentChat&&currentChat.type==="private"&&currentChat.name===msg.from_username){currentChat=null;resetChatView();}
+    }
+    return;
+  }
+  // 消息撤回通知
+  // 服务器回声：消息已保存，更新 DOM 中的 data-msg-id
+  if(msg.type==="msg_sent_ack"){
+    if(msg.temp_key){
+      document.querySelectorAll('.msg-row[data-temp-key="'+msg.temp_key+'"]').forEach(function(r){
+        r.setAttribute("data-msg-id",msg.message_id);
+        r.setAttribute("data-msg-key",msg.message_id);
+      });
+    }
+    return;
+  }
+  if(msg.type==="msg_recalled"){
+    document.querySelectorAll('.msg-row[data-msg-id="'+msg.message_id+'"]').forEach(function(r){
+      var bubble=r.querySelector(".msg-bubble");
+      if(bubble){bubble.innerHTML='<span style="color:var(--text-sub);font-style:italic;">'+(msg.sender_username===myUsername?"你":"对方")+'撤回了一条消息</span>';}
+    });
+    return;
+  }
   if(msg.type==="typing"){if(currentChat&&currentChat.type==="private"&&currentChat.name===msg.sender_username){showTyping(true);}return;}
   if(msg.type==="stop_typing"){showTyping(false);return;}
 
@@ -265,6 +295,16 @@ function handleWsMessage(msg){
     return;
   }
 
+  // Profile/status real-time updates
+  if(msg.type==="profile_update"){
+    var ck = convKey("private", msg.uid);
+    var deleted = getDeleted();
+    var dx = deleted.indexOf(ck);
+    if(dx !== -1){ deleted.splice(dx,1); setDeleted(deleted); }
+    loadConversations();
+    return;
+  }
+
   if(msg.type==="new_msg"){
     // 如果之前被手动隐藏（deleteConv），收到新消息时自动恢复
     var key=convKey("private",msg.sender_id||msg.sender_username),dels=getDeleted(),dx=dels.indexOf(key);
@@ -279,12 +319,15 @@ function handleWsMessage(msg){
   }
   // Group system notifications
   if(msg.type==="group_sys_notify"){
-    // Show system message in group chat if viewing that group
     if(currentChat&&currentChat.type==="group"&&currentChat.target_id===msg.group_id){
       var sysMsg='[系统] '+escapeHtml(msg.desc);
       appendSystemMessage(sysMsg,msg.create_at);
+      // 如果是成员变动，刷新群管理面板
+      if(["join","leave","kick","set_admin","revoke_admin","transfer_owner","disband"].indexOf(msg.notify_type)!==-1){
+        showGroupManagePanel();
+      }
     }
-    loadConversations();loadGroups();
+    loadConversations();loadGroups();loadApplyBadge();
   }
 }
 function highlightConvItem(type,id,name){var k=convKey(type,id||name);document.querySelectorAll(".conv-item").forEach(function(it){if(it.getAttribute("data-conv-key")===k){it.classList.add("new-highlight");setTimeout(function(){it.classList.remove("new-highlight");},2000);}});}
@@ -382,7 +425,7 @@ function renderConversations(){
     var avatarUrl=cn.avatar||"",avatarHtml="";
     if(avatarUrl){avatarHtml='<img src="'+escapeHtml(avatarUrl)+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentElement.textContent=\''+(cn.type==="group"?"👥":"👤")+'\';">';}
     else {avatarHtml=(cn.type==="group"?"👥":"👤");}
-    return'<div class="conv-item'+active+(cn._pinned?" pinned":"")+'" onclick="openConversation(\''+cn.type+'\','+cn.target_id+',\''+escapeHtml(cn.name)+'\')" oncontextmenu="onConvContext(event,\''+cn.type+'\','+cn.target_id+',\''+escapeHtml(cn.name)+'\')" data-conv-key="'+k+'"><div class="conv-avatar'+(cn.type==="group"?" group-avatar":"")+'">'+avatarHtml+'</div><div class="conv-info"><div class="conv-name">'+(cn._pinned?"📌 ":"")+escapeHtml(cn._note||cn.name)+'</div><div class="conv-preview">'+escapeHtml(cn.last_msg||"").slice(0,40)+'</div>'+(cn.status_message&&cn.type==="private"?'<div class="conv-status">'+escapeHtml(cn.status_message)+'</div>':"")+'</div><div class="conv-meta"><div class="conv-time">'+formatWechatTime(cn.last_time)+'</div>'+(cn.unread>0?'<div class="conv-badge">'+(cn.unread>9?"9+":cn.unread)+'</div>':"")+'</div>'+(cn._muted?'<span class="dnd-icon">🔕</span>':"")+'</div>';
+    return'<div class="conv-item'+active+(cn._pinned?" pinned":"")+'" onclick="openConversation(\''+cn.type+'\','+cn.target_id+',\''+escapeHtml(cn.name)+'\')" oncontextmenu="onConvContext(event,\''+cn.type+'\','+cn.target_id+',\''+escapeHtml(cn.name)+'\')" data-conv-key="'+k+'"><div class="conv-avatar'+(cn.type==="group"?" group-avatar":"")+'">'+avatarHtml+'<span class="conv-online-dot" style="position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-radius:50%;border:2px solid var(--bg-sidebar);background:'+(cn.online_status===1?"var(--online)":"var(--text-tertiary)")+';"></span></div><div class="conv-info"><div class="conv-name">'+(cn._pinned?"📌 ":"")+escapeHtml(cn._note||cn.name)+'</div><div class="conv-preview">'+escapeHtml(cn.last_msg||"").slice(0,40)+'</div>'+(cn.status_message&&cn.type==="private"?'<div class="conv-status">'+escapeHtml(cn.status_message)+'</div>':"")+'</div><div class="conv-meta"><div class="conv-time">'+formatWechatTime(cn.last_time)+'</div>'+(cn.unread>0?'<div class="conv-badge">'+(cn.unread>9?"9+":cn.unread)+'</div>':"")+'</div>'+(cn._muted?'<span class="dnd-icon">🔕</span>':"")+'</div>';
   }).join("");
 }
 function onSearchConversations(){
@@ -425,7 +468,7 @@ async function loadHistory(){
 }
 
 /* ==================== 消息发送 ==================== */
-function sendCurrentChatMessage(){var inp=$("msgInput"),content=inp.value.trim();if(!content||!currentChat)return;content=emojiReplace(content);if(currentChat.type==="private")chatSocket.sendPrivate(currentChat.name,content,0);else chatSocket.sendGroup(currentChat.target_id,content,0);appendBubble("me",myUsername,content,0,formatTime(new Date()),null);inp.value="";inp.style.height="auto";inp.focus();}
+function sendCurrentChatMessage(){var inp=$("msgInput"),content=inp.value.trim();if(!content||!currentChat)return;content=emojiReplace(content);var tempKey="k"+Date.now()+Math.random();if(currentChat.type==="private")chatSocket.sendPrivate(currentChat.name,content,0,tempKey);else chatSocket.sendGroup(currentChat.target_id,content,0,tempKey);appendBubble("me",myUsername,content,0,formatTime(new Date()),null,null,tempKey);inp.value="";inp.style.height="auto";inp.focus();}
 function onInputKeydown(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendCurrentChatMessage();}else{sendTyping();}}
 function autoResizeTextarea(){var t=$("msgInput");t.style.height="auto";t.style.height=Math.min(t.scrollHeight,120)+"px";}
 
@@ -433,11 +476,11 @@ function autoResizeTextarea(){var t=$("msgInput");t.style.height="auto";t.style.
 async function onFileSelect(e,mt){var f=e.target.files[0];if(!f)return;e.target.value="";if(mt===1){if(!f.type.match(/^image\/(jpeg|png)$/)){alert("仅支持JPG/PNG");return;}if(f.size>10*1024*1024){alert("最大10MB");return;}}else{var a=[".pdf",".docx",".xlsx",".pptx"],ex="."+f.name.split(".").pop().toLowerCase();if(a.indexOf(ex)===-1){alert("仅支持PDF/Word/Excel/PPT");return;}if(f.size>50*1024*1024){alert("最大50MB");return;}}var res=await apiUpload(f);if(res.code!==200){alert(res.detail||"失败");return;}if(!currentChat)return;if(currentChat.type==="private")chatSocket.sendPrivate(currentChat.name,res.file_url,mt);else chatSocket.sendGroup(currentChat.target_id,res.file_url,mt);appendBubble("me",myUsername,res.file_url,mt,formatTime(new Date()),null);}
 
 /* ==================== 消息气泡（带头像+已读+时间格式） ==================== */
-function appendBubble(side,sender,content,msgType,time,msgId,senderAvatar){
+function appendBubble(side,sender,content,msgType,time,msgId,senderAvatar,tempKey){
   var list=$("messageList"),em=$("messageEmpty");if(em)em.style.display="none";
   if(time){try{var d=time.slice(0,10);if(lastMsgDate&&lastMsgDate!==d){var dv=document.createElement("div");dv.className="time-divider";dv.innerHTML="<span>"+(time?time.slice(0,16):"")+"</span>";list.appendChild(dv);}lastMsgDate=d;}catch(e){}}
   var row=document.createElement("div");row.className="msg-row "+side;
-  var key=msgId||("k"+Date.now()+Math.random());row.setAttribute("data-msg-key",key);row.setAttribute("data-msg-id",msgId||"");row.setAttribute("data-msg-content",content||"");row.setAttribute("data-msg-time",time||"");row.setAttribute("data-msg-sender",sender||"");row.setAttribute("data-msg-type",msgType||0);
+  var key=msgId||tempKey||("k"+Date.now()+Math.random());row.setAttribute("data-msg-key",key);row.setAttribute("data-msg-id",msgId||"");row.setAttribute("data-msg-content",content||"");row.setAttribute("data-msg-time",time||"");row.setAttribute("data-msg-sender",sender||"");row.setAttribute("data-msg-type",msgType||0);if(tempKey)row.setAttribute("data-temp-key",tempKey);
   row.addEventListener("contextmenu",function(e){onMsgContext(e,row);});
 
   // 对方消息头像
@@ -489,7 +532,20 @@ function onMsgContext(e,row){
 }
 function isWithin3Min(t){try{return(Date.now()-new Date(t.replace(/-/g,"/")).getTime())<3*60*1000;}catch(e){return false;}}
 function copyMsgText(){if(contextMsgData)navigator.clipboard.writeText(contextMsgData.content).catch(function(){});$("msgContextMenu").classList.remove("visible");}
-function recallMsg(){if(!contextMsgData||!isWithin3Min(contextMsgData.time)){alert("仅支持撤回3分钟内的消息");$("msgContextMenu").classList.remove("visible");return;}document.querySelectorAll('.msg-row[data-msg-key="'+contextMsgData.key+'"]').forEach(function(r){r.querySelector(".msg-bubble").innerHTML='<span style="color:var(--text-sub);font-style:italic;">你撤回了一条消息</span>';});$("msgContextMenu").classList.remove("visible");}
+function recallMsg(){
+  if(!contextMsgData||!isWithin3Min(contextMsgData.time)){alert("仅支持撤回3分钟内的消息");$("msgContextMenu").classList.remove("visible");return;}
+  $("msgContextMenu").classList.remove("visible");
+  // 立即更新本地UI
+  document.querySelectorAll('.msg-row[data-msg-key="'+contextMsgData.key+'"]').forEach(function(r){
+    var bubble=r.querySelector(".msg-bubble");
+    if(bubble){bubble.innerHTML='<span style="color:var(--text-sub);font-style:italic;">你撤回了一条消息</span>';}
+  });
+  // 通过 WebSocket 发送撤回
+  var msgId=contextMsgData.id;
+  if(currentChat&&currentChat.type==="private"){
+    chatSocket.sendRecall(msgId, currentChat.name);
+  }
+}
 function deleteMsgLocal(){if(!contextMsgData)return;document.querySelectorAll('.msg-row[data-msg-key="'+contextMsgData.key+'"]').forEach(function(r){r.remove();});$("msgContextMenu").classList.remove("visible");}
 function forwardMsg(){if(!contextMsgData||!contextMsgData.content)return;$("msgContextMenu").classList.remove("visible");showForwardModal(contextMsgData.content);}
 function enterMultiSelect(){if(!contextMsgData)return;$("msgContextMenu").classList.remove("visible");multiSelectMode=true;multiSelected.clear();multiSelected.add(contextMsgData.key);$("chatMain").classList.add("multiselect-active");$("multiselectBar").classList.add("visible");document.querySelectorAll(".msg-row").forEach(function(r){r.classList.add("multiselect-active");r.querySelector(".msg-checkbox").style.display="block";});document.querySelectorAll('.msg-row[data-msg-key="'+contextMsgData.key+'"] .msg-checkbox').forEach(function(c){c.checked=true;});updateMultiCount();}

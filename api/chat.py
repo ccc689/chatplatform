@@ -61,8 +61,9 @@ async def get_chat_history(req: HistoryRequest, db: Session = Depends(get_db)):
     ).update({ChatMessage.is_read: 1})
     db.commit()
 
-    # 5. 查询双方全部聊天记录（双向），按时间升序
+    # 5. 查询双方全部聊天记录（双向），按时间升序，排除已撤回消息
     messages = db.query(ChatMessage).filter(
+        ChatMessage.is_delete == 0,
         or_(
             and_(ChatMessage.sender_id == current_uid, ChatMessage.receiver_id == target_uid),
             and_(ChatMessage.sender_id == target_uid, ChatMessage.receiver_id == current_uid)

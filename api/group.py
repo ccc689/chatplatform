@@ -265,15 +265,14 @@ def invite_member(req: GroupInviteReq, db: Session = Depends(get_db)):
             admin_ids = set(group.admin_ids or [])
             admin_ids.add(group.owner_id)
             online_admins = manager.get_online_users() & admin_ids
-            import asyncio
             for aid in online_admins:
                 if aid != current_uid:
-                    asyncio.ensure_future(manager.send_personal_msg(aid, {
+                    manager.notify_user(aid, {
                         "type": "group_sys_notify", "group_id": req.group_id,
                         "notify_type": "invite_pending", "operator_name": inviter_name,
                         "target_name": target.username,
                         "desc": f"{inviter_name} 邀请了 {target.username} 入群，等待审批"
-                    }))
+                    })
         except Exception:
             pass
         logger.info(f"入群邀请(需审批) group_id={req.group_id} inviter={inviter_name} target={target.username}")
@@ -285,13 +284,12 @@ def invite_member(req: GroupInviteReq, db: Session = Depends(get_db)):
         db.commit()
         # 实时通知被邀请者
         try:
-            import asyncio
-            asyncio.ensure_future(manager.send_personal_msg(target.id, {
+            manager.notify_user(target.id, {
                 "type": "group_sys_notify", "group_id": req.group_id,
                 "notify_type": "invite", "operator_name": inviter_name,
                 "target_name": target.username,
                 "desc": f"{inviter_name} 邀请你加入群聊「{group.group_name}」"
-            }))
+            })
         except Exception:
             pass
         logger.info(f"入群邀请(自由加入) group_id={req.group_id} inviter={inviter_name} target={target.username}")
@@ -890,6 +888,22 @@ def deal_invite(req: InviteDealReq, db: Session = Depends(get_db)):
         db.add(member)
         _log_event(db, inv.group_id, "join", current_uid, current_uid)
         db.commit()
+        # 广播新成员入群通知给所有群成员
+        try:
+            new_member_name = db.query(User.username).filter(User.id == current_uid).scalar() or "未知"
+            member_rows = db.query(GroupMember.user_id).filter(
+                GroupMember.group_id == inv.group_id, GroupMember.is_quit == 0
+            ).all()
+            member_ids = {m.user_id for m in member_rows}
+            online = manager.get_online_users() & member_ids
+            for mid in online:
+                manager.notify_user(mid, {
+                    "type": "group_sys_notify", "group_id": inv.group_id,
+                    "notify_type": "join", "operator_name": new_member_name,
+                    "target_name": new_member_name,
+                    "desc": f"{new_member_name} 加入了群聊"
+                })
+        except Exception: pass
         return {"code": 200, "msg": f"已加入群聊「{group.group_name}」"}
     else:
         inv.status = 2

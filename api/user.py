@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+﻿from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from database.db import get_db, User, LoginAttempt
+from database.db import get_db, User, LoginAttempt, FriendRelation
+from utils.ws_manager import manager
+from sqlalchemy import or_, and_
 from utils.security import (
     hash_password, verify_password, create_access_token,
     get_current_user_from_token, validate_username, validate_password
@@ -100,7 +102,8 @@ def get_profile(token: str, db: Session = Depends(get_db)):
             "user_id": user.id,
             "username": user.username,
             "avatar": user.avatar or "",
-            "status_message": user.status_message or ""
+            "status_message": user.status_message or "",
+            "online_status": user.online_status
         }
     }
 
@@ -131,17 +134,48 @@ def update_profile(body: ProfileUpdate, db: Session = Depends(get_db)):
 
     db.commit()
     db.refresh(user)
+    _broadcast_profile_update(uid, user, db)
     return {
         "code": 200,
         "msg": "更新成功",
         "data": {
             "username": user.username,
             "avatar": user.avatar or "",
-            "status_message": user.status_message or ""
+            "status_message": user.status_message or "",
+            "online_status": user.online_status
         }
     }
 
 
+
+# ==================== 在线状态 ====================
+
+class OnlineStatusReq(BaseModel):
+    token: str
+    online_status: int  # 0=离线 1=在线
+
+@router.post("/online_status")
+def set_online_status(body: OnlineStatusReq, db: Session = Depends(get_db)):
+    """手动设置在线/离线状态"""
+    uid = get_current_user_from_token(body.token)
+    user = db.query(User).filter(User.id == uid).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    
+    user.online_status = 1 if body.online_status == 1 else 0
+    db.commit()
+    db.refresh(user)
+    
+    # 广播状态变更给所有在线好友
+    _broadcast_profile_update(uid, user, db)
+    
+    return {
+        "code": 200,
+        "msg": "状态更新成功",
+        "data": {
+            "online_status": user.online_status
+        }
+    }
 # ==================== 修改密码 ====================
 
 class ChangePasswordRequest(BaseModel):
@@ -171,3 +205,4 @@ def change_password(body: ChangePasswordRequest, db: Session = Depends(get_db)):
     user.password = hash_password(body.new_password)
     db.commit()
     return {"code": 200, "msg": "密码修改成功"}
+

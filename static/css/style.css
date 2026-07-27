@@ -164,6 +164,12 @@ button { cursor:pointer; background:none; color:inherit; }
   display:flex; align-items:center; justify-content:space-between;
 }
 .sidebar-top .user-info {
+.sidebar-top-left { display:flex; align-items:center; flex:1; min-width:0; gap:8px; }
+.sidebar-top-left .user-avatar { width:40px; height:40px; border-radius:50%; background:var(--wechat-green); display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; font-weight:600; flex-shrink:0; position:relative; }
+.sidebar-top-left .user-avatar img { width:100%; height:100%; border-radius:50%; object-fit:cover; }
+.sidebar-top-left .sidebar-user-meta { flex:1; min-width:0; cursor:pointer; }
+.sidebar-top-left .sidebar-user-meta .user-name { font-size:15px; font-weight:600; color:var(--text-primary); display:block; }
+.sidebar-top-left .sidebar-user-meta .self-status { font-size:12px; color:var(--text-secondary); max-width:120px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; display:block; }
   display:flex; align-items:center; gap:10px; cursor:pointer;
   padding:4px 8px 4px 4px; border-radius:var(--radius);
   transition:background var(--fast) var(--ease);
@@ -196,6 +202,15 @@ button { cursor:pointer; background:none; color:inherit; }
   transition:all var(--fast) var(--ease);
 }
 .sidebar-top .logout-link:hover { color:var(--unread); background:rgba(239,68,68,0.06); }
+.online-toggle {
+  font-size:11px; padding:2px 8px; border-radius:var(--radius-full);
+  cursor:pointer; transition:all var(--fast) var(--ease);
+  white-space:nowrap; display:inline-block;
+  margin-right:8px;
+}
+.online-toggle.online { background:var(--green-light); color:var(--wechat-green); font-weight:600; }
+.online-toggle.offline { background:var(--bg-input); color:var(--text-tertiary); }
+.online-toggle:hover { opacity:0.8; }
 .logout-icon {
   font-size:16px; color:var(--text-tertiary); cursor:pointer;
   padding:6px 10px; border-radius:var(--radius-sm);
@@ -247,6 +262,7 @@ button { cursor:pointer; background:none; color:inherit; }
   flex-shrink:0; display:flex; align-items:center;
   justify-content:center; font-size:18px; color:#fff; margin-right:12px;
   overflow:hidden;
+  position:relative;
 }
 .conv-avatar.group-avatar { background:#22C55E; }
 .conv-avatar img { width:100%; height:100%; border-radius:50%; object-fit:cover; }

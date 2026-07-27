@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, SmallInteger, Text, DateTime, BIGINT, ForeignKey, JSON
+﻿from sqlalchemy import create_engine, Column, Integer, String, SmallInteger, Text, DateTime, BIGINT, ForeignKey, JSON
 from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
 from dotenv import load_dotenv
@@ -41,6 +41,7 @@ class User(Base):
     password = Column(String(255), nullable=False, comment="加密密码")
     avatar = Column(String(255), default="", comment="头像URL")
     status_message = Column(String(50), default="", comment="个性状态")
+    online_status = Column(SmallInteger, default=1, comment="在线状态: 0离线 1在线")
     create_at = Column(DateTime, default=datetime.now, comment="注册时间")
 
 
@@ -107,3 +108,4 @@ class LoginAttempt(Base):
     ip_address = Column(String(45), default="", comment="客户端IP")
     success = Column(SmallInteger, default=0, comment="0失败 1成功")
     create_at = Column(DateTime, default=datetime.now, comment="尝试时间")
+

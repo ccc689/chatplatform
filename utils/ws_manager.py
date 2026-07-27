@@ -20,6 +20,25 @@ class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[int, WebSocket] = {}
         self._lock = asyncio.Lock()
+        self._loop = None
+
+    def _ensure_loop(self):
+        """确保有可用的 event loop（兼容同步端点调用）"""
+        if self._loop is None or self._loop.is_closed():
+            try:
+                self._loop = asyncio.get_running_loop()
+            except RuntimeError:
+                self._loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(self._loop)
+        return self._loop
+
+    def notify_user(self, target_uid: int, msg_json: dict):
+        """线程安全地向指定用户推送消息（可从同步函数调用）"""
+        loop = self._ensure_loop()
+        try:
+            asyncio.run_coroutine_threadsafe(self.send_personal_msg(target_uid, msg_json), loop)
+        except Exception:
+            pass
 
     async def connect(self, user_id: int, websocket: WebSocket):
         """用户上线，若已存在旧连接则主动断开"""

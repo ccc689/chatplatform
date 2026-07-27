@@ -79,7 +79,8 @@ def get_conversation_list(token: str, db: Session = Depends(get_db)):
             "last_time": last_msg.create_at.strftime("%Y-%m-%d %H:%M:%S") if last_msg and last_msg.create_at else "",
             "last_time_sort": last_msg.create_at.strftime("%Y%m%d%H%M%S") if last_msg and last_msg.create_at else "0",
             "unread": unread,
-            "status_message": friend_status
+            "status_message": friend_status,
+            "online_status": friend.online_status
         })
 
     # ========== 2. 群聊会话 ==========
