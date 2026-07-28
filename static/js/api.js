@@ -72,7 +72,8 @@ function _handle401(data) {
 /* ---------- API 方法 ---------- */
 var UserAPI = {
   register: function(u, p) { return apiPost("/user/register", { username: u, password: p }); },
-  login: function(u, p)    { return apiPost("/user/login",    { username: u, password: p }); }
+  login: function(u, p)    { return apiPost("/user/login",    { username: u, password: p }); },
+  setOnlineStatus: function(onlineStatus) { return apiPost("/user/online_status", { token: getToken(), online_status: onlineStatus }); }
 };
 
 var FriendAPI = {

@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from database.db import get_db, User, LoginAttempt, FriendRelation
@@ -148,6 +148,54 @@ def update_profile(body: ProfileUpdate, db: Session = Depends(get_db)):
 
 
 
+def _broadcast_profile_update(uid: int, user, db):
+    """通知所有在线好友：某用户更新了个人资料/在线状态"""
+    try:
+        # 找到所有互为好友的用户ID
+        records = db.query(FriendRelation).filter(
+            ((FriendRelation.user_id == uid) | (FriendRelation.friend_id == uid)),
+            FriendRelation.status == 1
+        ).all()
+        friend_ids = set()
+        for rel in records:
+            fid = rel.friend_id if rel.user_id == uid else rel.user_id
+            friend_ids.add(fid)
+        online_friends = manager.get_online_users() & friend_ids
+        for fid in online_friends:
+            manager.notify_user(fid, {
+                "type": "friend_profile_update",
+                "uid": uid,
+                "username": user.username,
+                "avatar": user.avatar or "",
+                "online_status": user.online_status,
+                "status_message": user.status_message or ""
+            })
+    except Exception:
+        pass
+
+
+def _broadcast_status_update(uid: int, user, db):
+    """轻量广播：仅通知在线状态变更（用于前端快速 DOM 更新，不刷新整个列表）"""
+    try:
+        records = db.query(FriendRelation).filter(
+            ((FriendRelation.user_id == uid) | (FriendRelation.friend_id == uid)),
+            FriendRelation.status == 1
+        ).all()
+        friend_ids = set()
+        for rel in records:
+            fid = rel.friend_id if rel.user_id == uid else rel.user_id
+            friend_ids.add(fid)
+        online_friends = manager.get_online_users() & friend_ids
+        msg = {"type": "status_update", "user_id": uid, "online": user.online_status == 1}
+        print(f"[后端广播日志] 当前连接池用户: {list(manager.get_online_users())}")
+        print(f"[后端广播日志] 好友列表: {list(friend_ids)}, 在线好友: {list(online_friends)}")
+        print(f"[后端广播日志] 正在发送消息给所有在线好友: {msg}")
+        for fid in online_friends:
+            manager.notify_user(fid, msg)
+    except Exception:
+        pass
+
+
 # ==================== 在线状态 ====================
 
 class OnlineStatusReq(BaseModel):
@@ -165,8 +213,10 @@ def set_online_status(body: OnlineStatusReq, db: Session = Depends(get_db)):
     user.online_status = 1 if body.online_status == 1 else 0
     db.commit()
     db.refresh(user)
+    print(f"[set_online_status] uid={uid} 状态已更新为 online_status={user.online_status}")
     
-    # 广播状态变更给所有在线好友
+    # 广播状态变更给所有在线好友（轻量实时DOM更新 + 完整资料同步）
+    _broadcast_status_update(uid, user, db)
     _broadcast_profile_update(uid, user, db)
     
     return {

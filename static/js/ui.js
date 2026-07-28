@@ -10,7 +10,6 @@ var convListCache = [];
 var myUsername = "";
 var myAvatar = "";
 var myStatus = "";
-var myOnline = 1;
 var myUserId = 0;
 
 /* ==================== 个性状态预设库 ==================== */
@@ -41,6 +40,7 @@ function getPinned(){return lsGet("pinned_convs");} function setPinned(v){lsSet(
 function getMuted(){return lsGet("muted_convs");} function setMuted(v){lsSet("muted_convs",v);}
 function getNotes(){try{return JSON.parse(localStorage.getItem("friend_notes"))||{};}catch(e){return{};}} function setNotes(v){localStorage.setItem("friend_notes",JSON.stringify(v));}
 function getDeleted(){return lsGet("deleted_convs");} function setDeleted(v){lsSet("deleted_convs",v);}
+function getChatCleared(){try{return JSON.parse(localStorage.getItem("chat_cleared"))||{};}catch(e){return{};}} function setChatCleared(v){localStorage.setItem("chat_cleared",JSON.stringify(v));}
 function getFavs(){return lsGet("favorites");} function setFavs(v){lsSet("favorites",v);}
 function getTheme(){return localStorage.getItem("theme")||"light";} function setTheme(v){localStorage.setItem("theme",v);}
 function convKey(t,id){return t+"_"+id;}
@@ -49,18 +49,11 @@ function convKey(t,id){return t+"_"+id;}
 function pad(n){return n<10?"0"+n:n;}
 function formatWechatTime(ts) {
   if(!ts) return "";
-  var dt=null;
-  if(typeof ts==="number"){dt=new Date(ts);}
-  else if(typeof ts==="string"){
-    var s=ts.replace(/-/g,"/").replace(/\.\d+Z$/,"Z");
-    dt=new Date(s);
-  }
-  else{dt=new Date(ts);}
-  if(!dt||isNaN(dt.getTime())) return "";
-  var now=new Date(), diff=now-dt, min=Math.floor(diff/60000), hr=Math.floor(diff/3600000);
-  var t=dt, td=t.getDate(), nd=now.getDate(), tm=t.getMonth(), nm=now.getMonth(), ty=t.getFullYear(), ny=now.getFullYear();
+  var now=new Date(), t=new Date(ts.replace(/-/g,"/"));
+  var diff=now-t, min=Math.floor(diff/60000), hr=Math.floor(diff/3600000);
   if(min<1) return "刚刚";
   if(min<60) return min+"分钟前";
+  var td=t.getDate(), nd=now.getDate(), tm=t.getMonth(), nm=now.getMonth(), ty=t.getFullYear(), ny=now.getFullYear();
   if(hr<24 && td===nd && tm===nm && ty===ny) return hr+"小时前";
   var yest=new Date(now);yest.setDate(nd-1);
   if(td===yest.getDate() && tm===yest.getMonth()) return "昨天 "+pad(t.getHours())+":"+pad(t.getMinutes());
@@ -97,9 +90,9 @@ async function onAttachSelect(e){var f=e.target.files[0];if(!f)return;e.target.v
 async function onFileSelectInternal(f,mt){if(mt===1){if(!f.type.match(/^image\/(jpeg|png)$/)){alert("仅支持JPG/PNG");return;}if(f.size>10*1024*1024){alert("最大10MB");return;}}else{var a=[".pdf",".docx",".xlsx",".pptx"],ex="."+f.name.split(".").pop().toLowerCase();if(a.indexOf(ex)===-1){alert("仅支持PDF/Word/Excel/PPT");return;}if(f.size>50*1024*1024){alert("最大50MB");return;}}var res=await apiUpload(f);if(res.code!==200){alert(res.detail||"失败");return;}if(!currentChat)return;if(currentChat.type==="private")chatSocket.sendPrivate(currentChat.name,res.file_url,mt);else chatSocket.sendGroup(currentChat.target_id,res.file_url,mt);appendBubble("me",myUsername,res.file_url,mt,formatTime(new Date()),null);}
 
 /* ==================== 个人信息 ==================== */
-async function loadMyProfile(){try{var r=await fetch("/user/profile?token="+getToken()),d=await r.json();if(d.code===200){if(d.data.user_id){myUserId=d.data.user_id;sessionStorage.setItem("my_user_id",myUserId);}if(d.data.avatar){myAvatar=d.data.avatar;sessionStorage.setItem("my_avatar",myAvatar);}if(d.data.username){myUsername=d.data.username;sessionStorage.setItem("my_username",myUsername);$("myUsername").textContent=myUsername;}if(d.data.status_message!==undefined){myStatus=d.data.status_message;sessionStorage.setItem("my_status",myStatus);}if(d.data.online_status!==undefined){myOnline=d.data.online_status;updateOnlineStatusUI();}refreshMyAvatar();}}catch(e){}}
+async function loadMyProfile(){try{var r=await fetch("/user/profile?token="+getToken()),d=await r.json();if(d.code===200){if(d.data.user_id){myUserId=d.data.user_id;sessionStorage.setItem("my_user_id",myUserId);}if(d.data.avatar){myAvatar=d.data.avatar;sessionStorage.setItem("my_avatar",myAvatar);}if(d.data.username){myUsername=d.data.username;sessionStorage.setItem("my_username",myUsername);$("myUsername").textContent=myUsername;}if(d.data.status_message!==undefined){myStatus=d.data.status_message;sessionStorage.setItem("my_status",myStatus);}if(d.data.online_status!==undefined){myOnlineStatus=d.data.online_status;}refreshMyAvatar();updateMyOnlineDot();updateMyStatusDisplay();}}catch(e){}}
 function refreshMyAvatar(){var i=$("sidebarAvatarImg"),f=$("sidebarAvatarFallback");if(myAvatar&&i){i.src=myAvatar;i.style.display="block";if(f)f.style.display="none";}else{if(i)i.style.display="none";if(f){f.style.display="flex";f.textContent=(myUsername||"?").charAt(0).toUpperCase();}}var pi=$("profileAvatarImg"),pf=$("profileAvatarFallback");if(myAvatar&&pi){pi.src=myAvatar;pi.style.display="block";if(pf)pf.style.display="none";}else{if(pi)pi.style.display="none";if(pf){pf.style.display="flex";pf.textContent=(myUsername||"?").charAt(0).toUpperCase();}}}
-function showMyProfile(){$("profileNickname").textContent=myUsername;$("profileStatus").textContent=myStatus||"未设置";refreshMyAvatar();$("nicknameEditArea").style.display="none";$("statusEditArea").style.display="none";$("myProfileModal").classList.add("visible");$("profileLogoutBtn").onclick=function(){if(confirm("确定退出？"))logout();};}
+function showMyProfile(){$("profileNickname").textContent=myUsername;$("profileStatus").textContent=myStatus||"未设置";refreshMyAvatar();$("nicknameEditArea").style.display="none";$("myProfileModal").classList.add("visible");$("profileLogoutBtn").onclick=function(){if(confirm("确定退出？"))logout();};}
 function uploadAvatar(e){var f=e.target.files[0];if(!f)return;e.target.value="";if(!f.type.match(/^image\/(jpeg|png)$/)){alert("仅支持JPG/PNG");return;}if(f.size>5*1024*1024){alert("最大5MB");return;}var r=new FileReader();r.onload=function(ev){$("profileAvatarImg").src=ev.target.result;$("profileAvatarImg").style.display="block";$("profileAvatarFallback").style.display="none";};r.readAsDataURL(f);var fd=new FormData();fd.append("token",getToken());fd.append("file",f);fetch("/upload/file",{method:"POST",body:fd}).then(function(r){return r.json();}).then(async function(d){if(d.code===200){myAvatar=d.file_url;sessionStorage.setItem("my_avatar",myAvatar);await fetch("/user/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:getToken(),avatar:myAvatar})});refreshMyAvatar();}else alert("上传失败");});}
 function editNickname(){$("nicknameEditArea").style.display="block";$("nicknameInput").value=myUsername;$("nicknameInput").focus();}
 async function saveNickname(){var v=$("nicknameInput").value.trim();if(!v||v===myUsername||v.length<2){$("nicknameEditArea").style.display="none";return;}if(v.length>12){alert("最多12字");return;}var r=await fetch("/user/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:getToken(),nickname:v})}),d=await r.json();if(d.code===200){myUsername=d.data.username;sessionStorage.setItem("my_username",myUsername);$("myUsername").textContent=myUsername;$("profileNickname").textContent=myUsername;refreshMyAvatar();loadConversations();$("nicknameEditArea").style.display="none";}else{alert(d.detail||"修改失败，昵称可能已被占用");}}
@@ -169,7 +162,6 @@ async function saveStatusFromModal(){
   var d = await r.json();
   if(d.code===200){
     myStatus = d.data.status_message || "";
-    if(d.data.online_status!==undefined){myOnline=d.data.online_status;updateOnlineStatusUI();}
     sessionStorage.setItem("my_status", myStatus);
     $("profileStatus").textContent = myStatus || "未设置";
     updateMyStatusDisplay();
@@ -187,62 +179,33 @@ function saveSetting(k,v){localStorage.setItem("setting_"+k,v?"1":"0");}
 async function changePassword(){var o=$("oldPwd").value,n1=$("newPwd").value,n2=$("newPwd2").value;if(!o||!n1){alert("请填写完整");return;}if(n1.length<6){alert("新密码至少6位");return;}if(n1!==n2){alert("两次密码不一致");return;}var r=await apiPost("/user/change_password",{token:getToken(),old_password:o,new_password:n1});if(r.code===200){alert("密码修改成功");$("changePwdArea").style.display="none";$("oldPwd").value="";$("newPwd").value="";$("newPwd2").value="";}else{alert(r.detail||"修改失败");}}
 
 /* ==================== 收藏 ==================== */
-function favMsg(){
-  if(!contextMsgData||!contextMsgData.content)return;
-  $("msgContextMenu").classList.remove("visible");
-  var favs=getFavs();
-  favs.push({
-    content:contextMsgData.content, time:contextMsgData.time,
-    sender:contextMsgData.sender, msgType:contextMsgData.msgType||0,
-    chatWith:contextMsgData.chatWith||(currentChat?currentChat.name:""),
-    chatType:contextMsgData.chatType||(currentChat?currentChat.type:""),
-    addedAt:new Date().toISOString()
-  });
-  setFavs(favs);
-}
-var favFolderState = {}; // track which folders are open
-function renderFavorites(){
-  var favs=getFavs(),c=$("favoritesList");
-  if(favs.length===0){c.innerHTML='<div style="text-align:center;color:var(--text-sub);padding:30px;">暂无收藏</div>';return;}
-  var groups={}, order=[];
-  favs.forEach(function(f,i){
-    var label;
-    if(!f.chatWith){label="未分类";}
-    else if(f.chatType==="group"){label="群聊："+f.chatWith;}
-    else{label="与 "+f.chatWith+" 的聊天";}
-    if(!groups[label]){groups[label]=[];order.push(label);}
-    groups[label].push({i:i,content:f.content,time:f.time,sender:f.sender,msgType:f.msgType||0,addedAt:f.addedAt});
-  });
-  order.forEach(function(k){groups[k].sort(function(a,b){return new Date(b.addedAt)-new Date(a.addedAt);});});
-  order.sort(function(a,b){return new Date(groups[b][0].addedAt)-new Date(groups[a][0].addedAt);});
-  var icons={0:"💬",1:"🖼",2:"📎",3:"😊"};
-  var html="";
-  order.forEach(function(label,gi){
-    var items=groups[label];
-    var folderId="favFolder"+gi;
-    var isOpen=favFolderState[folderId]!==false;
-    var arrow=isOpen?"▼":"▶";
-    html+='<div style="font-size:13px;color:var(--green);font-weight:600;padding:10px 0;border-top:1px solid var(--border-light);margin-top:4px;cursor:pointer;" onclick="toggleFavFolder(\''+folderId+'\')">'+arrow+' 📁 '+escapeHtml(label)+' <span style="font-weight:400;color:var(--text-sub);font-size:12px;">('+items.length+'条)</span></div>';
-    html+='<div id="'+folderId+'" style="'+(isOpen?"":"display:none;")+'">';
-    items.forEach(function(f){
-      var icon=icons[f.msgType]||"💬",preview="";
-      if(f.msgType===1){preview="[图片]";}
-      else if(f.msgType===2){preview="[文件] "+escapeHtml(f.content).slice(0,100);}
-      else{preview=escapeHtml(f.content).slice(0,120);}
-      html+='<div class="fav-item"><div class="fav-content"><span style="margin-right:6px;">'+icon+'</span>'+preview+'</div><div class="fav-meta">'+(f.time?formatWechatTime(f.time)+" · ":"")+"收藏于 "+formatWechatTime(f.addedAt)+'</div><span class="fav-del" onclick="delFav('+f.i+')">✕</span></div>';
-    });
-    html+='</div>';
-  });
-  c.innerHTML=html;
-}
-function toggleFavFolder(id){if(favFolderState[id]===undefined)favFolderState[id]=true;favFolderState[id]=!favFolderState[id];renderFavorites();}
+function favMsg(){if(!contextMsgData||!contextMsgData.content)return;$("msgContextMenu").classList.remove("visible");var favs=getFavs();favs.push({content:contextMsgData.content, time:contextMsgData.time, sender:contextMsgData.sender, msgType:0, addedAt:new Date().toISOString()});setFavs(favs);}
+function renderFavorites(){var favs=getFavs(),c=$("favoritesList");if(favs.length===0){c.innerHTML='<div style="text-align:center;color:var(--text-sub);padding:30px;">暂无收藏</div>';return;}c.innerHTML=favs.map(function(f,i){return'<div class="fav-item"><div class="fav-content">'+escapeHtml(f.content).slice(0,200)+'</div><div class="fav-meta">'+formatWechatTime(f.addedAt)+'</div><span class="fav-del" onclick="delFav('+i+')">✕</span></div>';}).join("");}
 function delFav(i){var favs=getFavs();favs.splice(i,1);setFavs(favs);renderFavorites();}
-function multiFav(){var favs=getFavs();multiSelected.forEach(function(k){var el=document.querySelector('.msg-row[data-msg-key="'+k+'"]');if(el){favs.push({content:el.getAttribute("data-msg-content"),time:el.getAttribute("data-msg-time"),sender:el.getAttribute("data-msg-sender"),msgType:parseInt(el.getAttribute("data-msg-type"))||0,chatWith:currentChat?currentChat.name:"",chatType:currentChat?currentChat.type:"",addedAt:new Date().toISOString()});}});setFavs(favs);exitMultiSelect();}
+function multiFav(){var favs=getFavs();multiSelected.forEach(function(k){var el=document.querySelector('.msg-row[data-msg-key="'+k+'"]');if(el){favs.push({content:el.getAttribute("data-msg-content"),time:el.getAttribute("data-msg-time"),sender:el.getAttribute("data-msg-sender"),msgType:0,addedAt:new Date().toISOString()});}});setFavs(favs);exitMultiSelect();}
 
 /* ==================== WebSocket ==================== */
 function handleWsMessage(msg){
   if(msg.type==="error")return;
-  // 好友实时通知
+
+  // 好友资料实时更新（在线状态变化等）
+  if(msg.type==="friend_profile_update"){loadConversations();return;}
+
+  // 在线状态轻量实时同步（直接改 DOM 圆点，不重新请求 API）
+  if(msg.type==="status_update"){
+    console.log('[前端执行] 正在将用户', msg.user_id, '的状态改为', msg.online ? '在线' : '离线');
+    var dot=document.querySelector('.conv-item[data-user-id="'+msg.user_id+'"] .conv-online-dot');
+    if(dot){
+      if(msg.online){dot.classList.add('online');dot.title='在线';}
+      else{dot.classList.remove('online');dot.title='离线';}
+      console.log('[前端执行] 圆点已更新', msg.user_id);
+    } else {
+      console.warn('[前端执行] 未找到用户', msg.user_id, '的圆点DOM节点');
+    }
+    return;
+  }
+
+  // 好友操作实时通知
   if(msg.type==="friend_notify"){
     if(msg.action==="new_request"){loadApplyBadge();}
     else if(msg.action==="request_accepted"){loadFriends();loadConversations();loadApplyBadge();}
@@ -252,17 +215,18 @@ function handleWsMessage(msg){
     }
     return;
   }
-  // 消息撤回通知
-  // 服务器回声：消息已保存，更新 DOM 中的 data-msg-id
+
+  // 消息发送回声：更新 data-msg-id 用于撤回
   if(msg.type==="msg_sent_ack"){
     if(msg.temp_key){
       document.querySelectorAll('.msg-row[data-temp-key="'+msg.temp_key+'"]').forEach(function(r){
-        r.setAttribute("data-msg-id",msg.message_id);
-        r.setAttribute("data-msg-key",msg.message_id);
+        r.setAttribute("data-msg-id",msg.message_id);r.setAttribute("data-msg-key",msg.message_id);
       });
     }
     return;
   }
+
+  // 消息撤回通知
   if(msg.type==="msg_recalled"){
     document.querySelectorAll('.msg-row[data-msg-id="'+msg.message_id+'"]').forEach(function(r){
       var bubble=r.querySelector(".msg-bubble");
@@ -270,10 +234,11 @@ function handleWsMessage(msg){
     });
     return;
   }
+
   if(msg.type==="typing"){if(currentChat&&currentChat.type==="private"&&currentChat.name===msg.sender_username){showTyping(true);}return;}
   if(msg.type==="stop_typing"){showTyping(false);return;}
 
-  // 收到已读回执：对方已打开会话 → 我方所有发给该用户的消息显示「已读」
+  // 已读回执
   if(msg.type==="read_receipt"){
     document.querySelectorAll('.msg-row.me').forEach(function(r){
       if(currentChat&&currentChat.type==="private"&&currentChat.name===msg.reader_username){
@@ -285,7 +250,6 @@ function handleWsMessage(msg){
 
   // 群聊已读更新
   if(msg.type==="group_read_update"){
-    // 更新当前群聊中自己发的消息的已读计数
     if(currentChat&&currentChat.type==="group"&&currentChat.target_id===msg.group_id){
       var count=0;
       document.querySelectorAll('.msg-row.me').forEach(function(r){
@@ -295,18 +259,7 @@ function handleWsMessage(msg){
     return;
   }
 
-  // Profile/status real-time updates
-  if(msg.type==="profile_update"){
-    var ck = convKey("private", msg.uid);
-    var deleted = getDeleted();
-    var dx = deleted.indexOf(ck);
-    if(dx !== -1){ deleted.splice(dx,1); setDeleted(deleted); }
-    loadConversations();
-    return;
-  }
-
   if(msg.type==="new_msg"){
-    // 如果之前被手动隐藏（deleteConv），收到新消息时自动恢复
     var key=convKey("private",msg.sender_id||msg.sender_username),dels=getDeleted(),dx=dels.indexOf(key);
     if(dx===-1&&msg.sender_username){dx=dels.indexOf(convKey("private",msg.sender_username));}
     if(dx!==-1){dels.splice(dx,1);setDeleted(dels);}
@@ -320,12 +273,7 @@ function handleWsMessage(msg){
   // Group system notifications
   if(msg.type==="group_sys_notify"){
     if(currentChat&&currentChat.type==="group"&&currentChat.target_id===msg.group_id){
-      var sysMsg='[系统] '+escapeHtml(msg.desc);
-      appendSystemMessage(sysMsg,msg.create_at);
-      // 如果是成员变动，刷新群管理面板
-      if(["join","leave","kick","set_admin","revoke_admin","transfer_owner","disband"].indexOf(msg.notify_type)!==-1){
-        showGroupManagePanel();
-      }
+      appendSystemMessage('[系统] '+escapeHtml(msg.desc),msg.create_at);
     }
     loadConversations();loadGroups();loadApplyBadge();
   }
@@ -353,67 +301,14 @@ function showTyping(show){var s=$("chatSubtitle");if(!s)return;if(show){s.innerH
 
 /* ==================== 数据加载 ==================== */
 async function loadConversations(){try{var r=await ConvAPI.list();convListCache=r.data||[];applyLocalOverrides();renderConversations();}catch(e){}}
-function applyLocalOverrides(){
-  var n=getNotes(),p=getPinned(),m=getMuted(),d=getDeleted();
-  cleanDeletedKeys(d);
-  // 检查被清除聊天记录的会话：如果最后消息早于清除时间，清空预览
-  var cleared=getChatCleared();
-  convListCache.forEach(function(c){
-    var ck=convKey(c.type,c.target_id);
-    if(cleared[ck]&&c.last_time){
-      var ct=new Date(cleared[ck]);
-      var lt=new Date(c.last_time.replace(/-/g,"/"));
-      if(lt<ct){c.last_msg="";c.last_time="";}
-    }
-  });
-  convListCache=convListCache.filter(function(c){return d.indexOf(convKey(c.type,c.target_id))===-1;});
-  convListCache.forEach(function(c){
-    var nk=c.type==="private"?c.name:convKey("group",c.target_id);
-    if(c.remark){c._note=c.remark;}else if(n[nk]){c._note=n[nk];}else{c._note=null;}
-    c._pinned=p.indexOf(convKey(c.type,c.target_id))!==-1;
-    c._muted=m.indexOf(convKey(c.type,c.target_id))!==-1;
-  });
-  convListCache.sort(function(a,b){
-    if(a._pinned&&!b._pinned)return-1;if(!a._pinned&&b._pinned)return 1;
-    return(b.last_time_sort||b.last_time||"0").localeCompare(a.last_time_sort||a.last_time||"0");
-  });
-}
-
-function cleanDeletedKeys(d){
-  for(var i=d.length-1;i>=0;i--){
-    var parts=d[i].split("_");
-    if(parts[0]==="private"&&parts[1]&&isNaN(parseInt(parts[1]))){
-      var found=convListCache.find(function(c){return c.type==="private"&&c.name===parts[1];});
-      if(found){d[i]=convKey("private",found.target_id);}
-      else{d.splice(i,1);}
-    }
-  }
-  setDeleted(d);
-}
+function cleanDeletedKeys(d){for(var i=d.length-1;i>=0;i--){var parts=d[i].split("_");if(parts[0]==="private"&&parts[1]&&isNaN(parseInt(parts[1]))){var found=convListCache.find(function(c){return c.type==="private"&&c.name===parts[1];});if(found){d[i]=convKey("private",found.target_id);}else{d.splice(i,1);}}}setDeleted(d);}
+function applyLocalOverrides(){var n=getNotes(),p=getPinned(),m=getMuted(),d=getDeleted();cleanDeletedKeys(d);var cleared=getChatCleared();convListCache.forEach(function(c){var ck=convKey(c.type,c.target_id);if(cleared[ck]&&c.last_time){var ct=new Date(cleared[ck]);var lt=new Date(c.last_time.replace(/-/g,"/"));if(lt<ct){c.last_msg="";c.last_time="";}}});convListCache=convListCache.filter(function(c){return d.indexOf(convKey(c.type,c.target_id))===-1;});convListCache.forEach(function(c){var nk=c.type==="private"?c.name:convKey("group",c.target_id);if(c.remark){c._note=c.remark;}else if(n[nk]){c._note=n[nk];}else{c._note=null;}c._pinned=p.indexOf(convKey(c.type,c.target_id))!==-1;c._muted=m.indexOf(convKey(c.type,c.target_id))!==-1;});convListCache.sort(function(a,b){if(a._pinned&&!b._pinned)return-1;if(!a._pinned&&b._pinned)return 1;return(b.last_time_sort||b.last_time||"0").localeCompare(a.last_time_sort||a.last_time||"0");});}
 async function loadFriends(){try{var r=await FriendAPI.friendList();friendListCache=r.friend_list||[];}catch(e){}}
 async function loadGroups(){try{var r=await GroupAPI.list();groupListCache=r.data||[];}catch(e){}}
 async function loadApplyBadge(){try{var r=await FriendAPI.applyList(),n=(r.data||[]).length;var gi=await GroupAPI.inviteCount(),gn=gi.count||0;var total=n+gn;var p=$("plusBadge");if(p){if(total>0)p.classList.add("visible");else p.classList.remove("visible");}var fb=$("friendReqBadge");if(fb)fb.textContent=n>0?"("+n+")":"";var gb=$("groupInviteBadge");if(gb)gb.textContent=gn>0?"("+gn+")":"";}catch(e){}}
-
-async function showFriendRequests(){
-  var d=$("plusDropdown");if(d)d.classList.remove("visible");
-  try{
-    var r=await FriendAPI.applyList(),list=r.data||[];
-    if(list.length===0){alert("暂无新朋友申请");return;}
-    var c=$("applyListInline");c.innerHTML=list.map(function(a){return'<div class="apply-item-row"><div class="apply-user">'+escapeHtml(a.apply_user_name)+'</div><div style="display:flex;gap:6px;"><button class="btn-accept" onclick="handleApplyFromModal('+a.apply_id+',1);event.stopPropagation();">同意</button><button class="btn-reject" onclick="handleApplyFromModal('+a.apply_id+',0);event.stopPropagation();">拒绝</button></div></div>';}).join("");
-    c.style.display="block";$("addFriendModal").classList.add("visible");
-  }catch(e){alert(e);}
-}
+async function showFriendRequests(){var d=$("plusDropdown");if(d)d.classList.remove("visible");try{var r=await FriendAPI.applyList(),list=r.data||[];if(list.length===0){alert("暂无新朋友申请");return;}var c=$("applyListInline");c.innerHTML=list.map(function(a){return'<div class="apply-item-row"><div class="apply-user">'+escapeHtml(a.apply_user_name)+'</div><div style="display:flex;gap:6px;"><button class="btn-accept" onclick="handleApplyFromModal('+a.apply_id+',1);event.stopPropagation();">同意</button><button class="btn-reject" onclick="handleApplyFromModal('+a.apply_id+',0);event.stopPropagation();">拒绝</button></div></div>';}).join("");c.style.display="block";$("addFriendModal").classList.add("visible");}catch(e){alert(e);}}
 async function handleApplyFromModal(id,op){await FriendAPI.dealApply(id,op);loadFriends();loadApplyBadge();showFriendRequests();}
-
-async function showGroupInvites(){
-  var d=$("plusDropdown");if(d)d.classList.remove("visible");
-  try{
-    var r=await GroupAPI.inviteList(),list=r.data||[];
-    var html=list.length===0?'<div style="text-align:center;color:var(--text-sub);padding:30px;">暂无群通知</div>':
-      list.map(function(inv){var st=inv.can_accept?"待你确认":"等待管理员审批";var act=inv.can_accept?'<div style="display:flex;gap:6px;"><button class="btn-accept" onclick="handleInviteDeal('+inv.invite_id+',1);event.stopPropagation();">加入</button><button class="btn-reject" onclick="handleInviteDeal('+inv.invite_id+',0);event.stopPropagation();">拒绝</button></div>':'<span style="font-size:11px;color:var(--text-sub);">⏳ '+st+'</span>';return'<div class="apply-item-row"><div class="apply-user"><span>'+escapeHtml(inv.group_name)+'</span><span style="font-size:12px;color:var(--text-sub);">'+(inv.inviter_name?" 来自 "+escapeHtml(inv.inviter_name):"")+' · '+st+'</span></div>'+act+'</div>';}).join("");
-    $("groupInviteContent").innerHTML=html;$("groupInviteModal").classList.add("visible");
-  }catch(e){alert(e);}
-}
+async function showGroupInvites(){var d=$("plusDropdown");if(d)d.classList.remove("visible");try{var r=await GroupAPI.inviteList(),list=r.data||[];var html=list.length===0?'<div style="text-align:center;color:var(--text-sub);padding:30px;">暂无群通知</div>':list.map(function(inv){var st=inv.can_accept?"待你确认":"等待管理员审批";var act=inv.can_accept?'<div style="display:flex;gap:6px;"><button class="btn-accept" onclick="handleInviteDeal('+inv.invite_id+',1);event.stopPropagation();">加入</button><button class="btn-reject" onclick="handleInviteDeal('+inv.invite_id+',0);event.stopPropagation();">拒绝</button></div>':'<span style="font-size:11px;color:var(--text-sub);">⏳ '+st+'</span>';return'<div class="apply-item-row"><div class="apply-user"><span>'+escapeHtml(inv.group_name)+'</span><span style="font-size:12px;color:var(--text-sub);">'+(inv.inviter_name?" 来自 "+escapeHtml(inv.inviter_name):"")+' · '+st+'</span></div>'+act+'</div>';}).join("");$("groupInviteContent").innerHTML=html;$("groupInviteModal").classList.add("visible");}catch(e){alert(e);}}
 async function handleInviteDeal(id,op){try{await GroupAPI.inviteDeal(id,op);loadGroups();loadConversations();loadApplyBadge();showGroupInvites();}catch(e){alert(e.detail||e);}}
 
 /* ==================== 会话列表 ==================== */
@@ -425,7 +320,9 @@ function renderConversations(){
     var avatarUrl=cn.avatar||"",avatarHtml="";
     if(avatarUrl){avatarHtml='<img src="'+escapeHtml(avatarUrl)+'" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentElement.textContent=\''+(cn.type==="group"?"👥":"👤")+'\';">';}
     else {avatarHtml=(cn.type==="group"?"👥":"👤");}
-    return'<div class="conv-item'+active+(cn._pinned?" pinned":"")+'" onclick="openConversation(\''+cn.type+'\','+cn.target_id+',\''+escapeHtml(cn.name)+'\')" oncontextmenu="onConvContext(event,\''+cn.type+'\','+cn.target_id+',\''+escapeHtml(cn.name)+'\')" data-conv-key="'+k+'"><div class="conv-avatar'+(cn.type==="group"?" group-avatar":"")+'">'+avatarHtml+'</div><div class="conv-info"><div class="conv-name-row"><div class="conv-name">'+(cn._pinned?"📌 ":"")+escapeHtml(cn._note||cn.name)+'</div></div><div class="conv-preview">'+escapeHtml(cn.last_msg||"").slice(0,40)+'</div>'+(cn.online_status!==undefined&&cn.type==="private"?'<span class="friend-online-dot '+(cn.online_status===1?"online":"offline")+'"></span>':"")+'+((cn.type==="private"?'<span class="conv-cstatus">'+escapeHtml(cn.status_message||"")+'</span>':"")+</div><div class="conv-meta"><div class="conv-time">'+formatWechatTime(cn.last_time)+'</div>'+(cn.unread>0?'<div class="conv-badge">'+(cn.unread>9?"9+":cn.unread)+'</div>':"")+'</div>'+(cn._muted?'<span class="dnd-icon">🔕</span>':"")+'</div>';
+    var onlineDot=""; if(cn.type==="private"){ var isOn=(cn.online_status===1||cn.online_status===undefined)&&cn.is_ws_online; onlineDot='<span class="conv-online-dot'+(isOn?" online":"")+'" title="'+(isOn?"在线":"离线")+'"></span>'; }
+    var uidAttr=cn.type==="private"?' data-user-id="'+cn.target_id+'"':'';
+    return'<div class="conv-item'+active+(cn._pinned?" pinned":"")+'" onclick="openConversation(\''+cn.type+'\','+cn.target_id+',\''+escapeHtml(cn.name)+'\')" oncontextmenu="onConvContext(event,\''+cn.type+'\','+cn.target_id+',\''+escapeHtml(cn.name)+'\')" data-conv-key="'+k+'"'+uidAttr+'><div class="conv-avatar'+(cn.type==="group"?" group-avatar":"")+'">'+avatarHtml+'</div><div class="conv-info"><div class="conv-name">'+(cn._pinned?"📌 ":"")+onlineDot+escapeHtml(cn._note||cn.name)+'</div><div class="conv-preview">'+escapeHtml(cn.last_msg||"").slice(0,40)+'</div>'+(cn.status_message&&cn.type==="private"?'<div class="conv-status">'+escapeHtml(cn.status_message)+'</div>':"")+'</div><div class="conv-meta"><div class="conv-time">'+formatWechatTime(cn.last_time)+'</div>'+(cn.unread>0?'<div class="conv-badge">'+(cn.unread>9?"9+":cn.unread)+'</div>':"")+'</div>'+(cn._muted?'<span class="dnd-icon">🔕</span>':"")+'</div>';
   }).join("");
 }
 function onSearchConversations(){
@@ -453,14 +350,14 @@ function openConversation(type,targetId,name){
     sub = (friendConv && friendConv.status_message) ? friendConv.status_message : "";
   }
   $("chatSubtitle").textContent=type==="group"?"群聊":sub;
-  $("messageList").innerHTML="";var em=$("messageEmpty");if(em)em.style.display="none";$("chatInputBar").style.display="block";
+  $("messageList").innerHTML='<div class="message-empty" id="messageEmpty" style="display:none;"><div class="empty-icon">💬</div><div class="empty-text">加载中…</div></div>';$("chatInputBar").style.display="block";
   var moreBtn=type==="group"?'<button class="more-btn" onclick="showGroupManagePanel()">···</button>':'<button class="more-btn" onclick="showFriendProfile(\''+escapeHtml(name)+'\')">···</button>';
   $("topbarActions").innerHTML='<div class="theme-toggle" id="themeToggle" onclick="toggleTheme()">'+(getTheme()==="dark"?"☀️":"🌙")+'</div>'+moreBtn+'<div class="plus-menu-wrapper" id="plusMenuWrapper"><button class="plus-btn" id="plusBtn">+</button><span class="plus-badge" id="plusBadge"></span><div class="plus-dropdown" id="plusDropdown"><div class="plus-dropdown-item" onclick="showAddFriendModal()"><span class="plus-dropdown-icon">👤</span><span>添加好友</span></div><div class="plus-dropdown-item" onclick="showCreateGroupModal()"><span class="plus-dropdown-icon">👥</span><span>发起群聊</span></div><div class="plus-dropdown-item" onclick="showFriendRequests()"><span class="plus-dropdown-icon">👋</span><span>新朋友</span><span id="friendReqBadge" style="color:var(--unread);font-size:11px;margin-left:auto;"></span></div><div class="plus-dropdown-item" onclick="showGroupInvites()"><span class="plus-dropdown-icon">🔔</span><span>群通知</span><span id="groupInviteBadge" style="color:var(--unread);font-size:11px;margin-left:auto;"></span></div></div></div>';
   bindPlusMenu();loadApplyBadge();renderConversations();
   loadHistory().then(function(){loadConversations();});
 }
 async function loadHistory(){
-  if(!currentChat)return;try{var res=currentChat.type==="private"?await ChatAPI.history(currentChat.name):await GroupAPI.history(currentChat.target_id),msgs=res.data||[],list=$("messageList");list.innerHTML="";var cleared=getChatCleared();var ck=convKey(currentChat.type,currentChat.target_id);var clearTime=cleared[ck]||"";if(clearTime){var ctDate=new Date(clearTime);msgs=msgs.filter(function(m){var mt=m.create_at.replace(/-/g,"/");return new Date(mt)>=ctDate;});}var em=$("messageEmpty");if(msgs.length===0){if(em)em.style.display="block";}else{if(em)em.style.display="none";}lastMsgDate=null;msgs.forEach(function(m){appendBubble((m.sender_name===myUsername)?"me":"other",m.sender_name,m.content,m.message_type,m.create_at,m.id,m.sender_avatar);});
+  if(!currentChat)return;try{var res=currentChat.type==="private"?await ChatAPI.history(currentChat.name):await GroupAPI.history(currentChat.target_id),msgs=res.data||[],list=$("messageList");list.innerHTML="";if(msgs.length===0){var em=$("messageEmpty");if(!em){list.innerHTML='<div class="message-empty" id="messageEmpty"><div class="empty-icon">💬</div><div class="empty-text">暂无消息</div><div class="empty-sub">开始你们的第一次对话吧 ✨</div></div>';}else{em.style.display="block";}}else{var em2=$("messageEmpty");if(em2)em2.style.display="none";}lastMsgDate=null;msgs.forEach(function(m){appendBubble((m.sender_name===myUsername)?"me":"other",m.sender_name,m.content,m.message_type,m.create_at,m.id,m.sender_avatar);});
   // 已读回执：打开会话后通知发送方「我已读」
   if(currentChat.type==="private"){chatSocket._send({type:"mark_read",target_username:currentChat.name});}
   else if(currentChat.type==="group"){chatSocket._send({type:"group_mark_read",group_id:currentChat.target_id});}
@@ -468,7 +365,7 @@ async function loadHistory(){
 }
 
 /* ==================== 消息发送 ==================== */
-function sendCurrentChatMessage(){var inp=$("msgInput"),content=inp.value.trim();if(!content||!currentChat)return;content=emojiReplace(content);var tempKey="k"+Date.now()+Math.random();if(currentChat.type==="private")chatSocket.sendPrivate(currentChat.name,content,0,tempKey);else chatSocket.sendGroup(currentChat.target_id,content,0,tempKey);appendBubble("me",myUsername,content,0,formatTime(new Date()),null,null,tempKey);inp.value="";inp.style.height="auto";inp.focus();}
+function sendCurrentChatMessage(){var inp=$("msgInput"),content=inp.value.trim();if(!content||!currentChat)return;content=emojiReplace(content);if(currentChat.type==="private")chatSocket.sendPrivate(currentChat.name,content,0);else chatSocket.sendGroup(currentChat.target_id,content,0);appendBubble("me",myUsername,content,0,formatTime(new Date()),null);inp.value="";inp.style.height="auto";inp.focus();}
 function onInputKeydown(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendCurrentChatMessage();}else{sendTyping();}}
 function autoResizeTextarea(){var t=$("msgInput");t.style.height="auto";t.style.height=Math.min(t.scrollHeight,120)+"px";}
 
@@ -476,9 +373,72 @@ function autoResizeTextarea(){var t=$("msgInput");t.style.height="auto";t.style.
 async function onFileSelect(e,mt){var f=e.target.files[0];if(!f)return;e.target.value="";if(mt===1){if(!f.type.match(/^image\/(jpeg|png)$/)){alert("仅支持JPG/PNG");return;}if(f.size>10*1024*1024){alert("最大10MB");return;}}else{var a=[".pdf",".docx",".xlsx",".pptx"],ex="."+f.name.split(".").pop().toLowerCase();if(a.indexOf(ex)===-1){alert("仅支持PDF/Word/Excel/PPT");return;}if(f.size>50*1024*1024){alert("最大50MB");return;}}var res=await apiUpload(f);if(res.code!==200){alert(res.detail||"失败");return;}if(!currentChat)return;if(currentChat.type==="private")chatSocket.sendPrivate(currentChat.name,res.file_url,mt);else chatSocket.sendGroup(currentChat.target_id,res.file_url,mt);appendBubble("me",myUsername,res.file_url,mt,formatTime(new Date()),null);}
 
 /* ==================== 消息气泡（带头像+已读+时间格式） ==================== */
-function appendBubble(side,sender,content,msgType,time,msgId,senderAvatar,tempKey){
+function appendBubble(side,sender,content,msgType,time,msgId,senderAvatar){
   var list=$("messageList"),em=$("messageEmpty");if(em)em.style.display="none";
-  if(time){try{var d=time.slice(0,10);if(lastMsgDate&&lastMsgDate!==d){var dv=document.createElement("div");dv.className="time-divider";dv.innerHTML="<span>"+(time?time.slice(0,16):"")+(cn.type==="private"?'<span class="conv-cstatus">'+escapeHtml(cn.status_message||"")+'</span>':"")+</div>';}).join("")+groupListCache.map(function(g){return'<div class="search-item" onclick="doForwardGroup('+g.group_id+');closeModal(\'forwardModal\');">👥 '+escapeHtml(g.group_name)+'</div>';}).join("");$("forwardModal").classList.add("visible");}
+  if(time){try{var d=time.slice(0,10);if(lastMsgDate&&lastMsgDate!==d){var dv=document.createElement("div");dv.className="time-divider";dv.innerHTML="<span>"+(time?time.slice(0,16):"")+"</span>";list.appendChild(dv);}lastMsgDate=d;}catch(e){}}
+  var row=document.createElement("div");row.className="msg-row "+side;
+  var key=msgId||("k"+Date.now()+Math.random());row.setAttribute("data-msg-key",key);row.setAttribute("data-msg-id",msgId||"");row.setAttribute("data-msg-content",content||"");row.setAttribute("data-msg-time",time||"");row.setAttribute("data-msg-sender",sender||"");
+  row.addEventListener("contextmenu",function(e){onMsgContext(e,row);});
+
+  // 对方消息头像
+  if(side==="other"){
+    var av=document.createElement("div");av.className="msg-sender-avatar";
+    var avatarUrl=senderAvatar||getAvatarForUser(sender);
+    if(avatarUrl){var aimg=document.createElement("img");aimg.src=avatarUrl;aimg.style.width="100%";aimg.style.height="100%";aimg.style.borderRadius="50%";aimg.style.objectFit="cover";aimg.onerror=function(){av.textContent=(sender||"?").charAt(0).toUpperCase();};av.appendChild(aimg);}
+    else{av.textContent=(sender||"?").charAt(0).toUpperCase();}
+    row.appendChild(av);
+  }
+
+  var wrap=document.createElement("div");wrap.className="msg-inner-wrap";
+  if(side==="other"){var nm=document.createElement("div");nm.className="msg-sender-name";nm.textContent=sender;wrap.appendChild(nm);}
+  var bubble=document.createElement("div");bubble.className="msg-bubble";
+  var inner=escapeHtml(content);inner=emojiReplace(inner);
+  if(msgType===1)inner='<img src="'+escapeHtml(content)+'" class="msg-image" onclick="previewImage(\''+escapeHtml(content)+'\')" onerror="this.style.display=\'none\'">';
+  else if(msgType===2){var ext=(content.split(".").pop()||"").toLowerCase(),icons={pdf:"📕",docx:"📘",xlsx:"📗",pptx:"📙"};inner='<a href="'+escapeHtml(content)+'" target="_blank" class="msg-file-link"><span class="file-icon">'+(icons[ext]||"📎")+'</span>'+escapeHtml(content.split("/").pop())+'</a>';}
+  bubble.innerHTML=inner;wrap.appendChild(bubble);
+
+  // 时间
+  var td=document.createElement("div");td.className="msg-time-text";td.textContent=time?formatWechatTime(time):"";wrap.appendChild(td);
+
+  // 已读状态占位（仅自己发的消息有占位，默认空白，等后端推送 read_receipt 后才显示）
+  if(side==="me"){
+    var rs=document.createElement("div");rs.className="msg-read-status";rs.setAttribute("data-read-key",key);
+    // 初始为空，不显示任何文字
+    if(currentChat&&currentChat.type==="group"){rs.classList.add("clickable");rs.onclick=function(){showReadMembers(key);};}
+    wrap.appendChild(rs);
+  }
+
+  // 多选模式勾选框
+  var cb=document.createElement("input");cb.type="checkbox";cb.className="msg-checkbox";cb.setAttribute("data-msg-key",key);
+  cb.onchange=function(){if(cb.checked)multiSelected.add(key);else multiSelected.delete(key);updateMultiCount();};
+  row.appendChild(cb);
+
+  row.appendChild(wrap);
+  if(multiSelectMode)row.classList.add("multiselect-active"),cb.style.display="block";
+  list.appendChild(row);list.scrollTop=list.scrollHeight;
+}
+function getAvatarForUser(username){if(!username)return"";for(var i=0;i<convListCache.length;i++){var c=convListCache[i];if(c.type==="private"&&c.name===username&&c.avatar)return c.avatar;}return"";}
+
+/* ==================== 消息右键菜单 ==================== */
+function onMsgContext(e,row){
+  if(multiSelectMode){e.preventDefault();var cb=row.querySelector(".msg-checkbox");if(cb){cb.checked=!cb.checked;if(cb.checked)multiSelected.add(row.getAttribute("data-msg-key"));else multiSelected.delete(row.getAttribute("data-msg-key"));updateMultiCount();}return;}
+  e.preventDefault();
+  contextMsgData={key:row.getAttribute("data-msg-key"),id:row.getAttribute("data-msg-id"),content:row.getAttribute("data-msg-content"),time:row.getAttribute("data-msg-time"),sender:row.getAttribute("data-msg-sender")};
+  var m=$("msgContextMenu");m.style.left=e.clientX+"px";m.style.top=e.clientY+"px";m.classList.add("visible");
+  $("msgRecallItem").style.display=(contextMsgData.sender===myUsername&&contextMsgData.time&&isWithin3Min(contextMsgData.time))?"block":"none";
+}
+function isWithin3Min(t){try{return(Date.now()-new Date(t.replace(/-/g,"/")).getTime())<3*60*1000;}catch(e){return false;}}
+function copyMsgText(){if(contextMsgData)navigator.clipboard.writeText(contextMsgData.content).catch(function(){});$("msgContextMenu").classList.remove("visible");}
+function recallMsg(){if(!contextMsgData||!isWithin3Min(contextMsgData.time)){alert("仅支持撤回3分钟内的消息");$("msgContextMenu").classList.remove("visible");return;}document.querySelectorAll('.msg-row[data-msg-key="'+contextMsgData.key+'"]').forEach(function(r){r.querySelector(".msg-bubble").innerHTML='<span style="color:var(--text-sub);font-style:italic;">你撤回了一条消息</span>';});$("msgContextMenu").classList.remove("visible");}
+function deleteMsgLocal(){if(!contextMsgData)return;document.querySelectorAll('.msg-row[data-msg-key="'+contextMsgData.key+'"]').forEach(function(r){r.remove();});$("msgContextMenu").classList.remove("visible");}
+function forwardMsg(){if(!contextMsgData||!contextMsgData.content)return;$("msgContextMenu").classList.remove("visible");showForwardModal(contextMsgData.content);}
+function enterMultiSelect(){if(!contextMsgData)return;$("msgContextMenu").classList.remove("visible");multiSelectMode=true;multiSelected.clear();multiSelected.add(contextMsgData.key);$("chatMain").classList.add("multiselect-active");$("multiselectBar").classList.add("visible");document.querySelectorAll(".msg-row").forEach(function(r){r.classList.add("multiselect-active");r.querySelector(".msg-checkbox").style.display="block";});document.querySelectorAll('.msg-row[data-msg-key="'+contextMsgData.key+'"] .msg-checkbox').forEach(function(c){c.checked=true;});updateMultiCount();}
+function exitMultiSelect(){multiSelectMode=false;multiSelected.clear();$("chatMain").classList.remove("multiselect-active");$("multiselectBar").classList.remove("visible");document.querySelectorAll(".msg-row").forEach(function(r){r.classList.remove("multiselect-active");var cb=r.querySelector(".msg-checkbox");if(cb){cb.style.display="none";cb.checked=false;}});}
+function updateMultiCount(){$("selectedCount").textContent="已选 "+multiSelected.size+" 条";}
+
+/* ==================== 批量操作 ==================== */
+function multiDelete(){multiSelected.forEach(function(k){document.querySelectorAll('.msg-row[data-msg-key="'+k+'"]').forEach(function(r){r.remove();});});exitMultiSelect();}
+function showForwardModal(content){$("forwardList").innerHTML='<p style="font-size:13px;color:var(--text-sub);margin-bottom:10px;">选择转发目标：</p>'+friendListCache.map(function(n){return'<div class="search-item" onclick="doForward(\''+escapeHtml(n)+'\');closeModal(\'forwardModal\');">👤 '+escapeHtml(n)+'</div>';}).join("")+groupListCache.map(function(g){return'<div class="search-item" onclick="doForwardGroup('+g.group_id+');closeModal(\'forwardModal\');">👥 '+escapeHtml(g.group_name)+'</div>';}).join("");$("forwardModal").classList.add("visible");}
 function multiForward(){var contents=[];multiSelected.forEach(function(k){var el=document.querySelector('.msg-row[data-msg-key="'+k+'"]');if(el)contents.push(el.getAttribute("data-msg-content"));});if(contents.length===0)return;showForwardModal(contents.join("\n---\n"));}
 function doForward(uname){var c=contextMsgData?contextMsgData.content:(multiSelected.size>0?(document.querySelector('.msg-row[data-msg-key="'+Array.from(multiSelected)[0]+'"]')||{}).getAttribute("data-msg-content")||"":"");if(c&&uname)chatSocket.sendPrivate(uname,c,0);exitMultiSelect();}
 function doForwardGroup(gid){var c=contextMsgData?contextMsgData.content:"";if(c&&gid)chatSocket.sendGroup(gid,c,0);exitMultiSelect();}
@@ -586,21 +546,13 @@ async function fpToggleMute() {
   } catch (e) { alert("操作失败"); }
 }
 
-function getChatCleared(){try{return JSON.parse(localStorage.getItem("chat_cleared"))||{};}catch(e){return{};}}
-function setChatCleared(v){localStorage.setItem("chat_cleared",JSON.stringify(v));}
 function fpClearChat() {
-  if (!confirm("确定清空与「" + _fpTargetName + "」的聊天记录？此操作不可恢复。")) return;
+  if (!confirm("确定清空与「" + _fpTargetName + "」的聊天记录？")) return;
+  $("messageList").innerHTML = '<div class="message-empty" id="messageEmpty"><div class="empty-icon">💬</div><div class="empty-text">聊天记录已清空</div></div>';
   var targetId = (_fpTargetData && _fpTargetData.user_id) || _fpTargetName;
-  var k = convKey("private", targetId);
-  var cleared = getChatCleared();
-  cleared[k] = new Date().toISOString();
-  setChatCleared(cleared);
-  $("messageList").innerHTML = ""; var em = $("messageEmpty"); if (em) em.style.display = "block";
-  if (currentChat && currentChat.type === "private" && currentChat.name === _fpTargetName) {
-    // 更新缓存中的 last_msg 为空
-    convListCache.forEach(function(c){ if (c.type === "private" && c.name === _fpTargetName) { c.last_msg = ""; c.last_time = ""; } });
-  }
-  renderConversations();
+  var k = convKey("private", targetId), d = getDeleted();
+  if (d.indexOf(k) === -1) { d.push(k); setDeleted(d); }
+  loadConversations();
 }
 
 async function fpDeleteFriend() {
@@ -793,46 +745,9 @@ function gpToggleMemberList() {
   _gpMemberListVisible = !_gpMemberListVisible;
   var section = $("gpMemberSection"); if (section) section.style.display = _gpMemberListVisible ? "block" : "none";
 }
-
-async function gpToggleJoinMode(checked) {
-  var mode = checked ? 1 : 0;
-  var r = await GroupAPI.joinMode(currentChat.target_id, mode);
-  if (r.code === 200) {
-    groupListCache.forEach(function(g) { if (g.group_id === currentChat.target_id) g.join_mode = mode; });
-  } else { alert(r.detail || "设置失败"); showGroupManagePanel(); }
-}
-
-async function showInviteToGroupModal() {
-  try {
-    var r = await GroupAPI.invitableFriends(currentChat.target_id);
-    var friends = r.data || [];
-    var cc = $("inviteMemberCheckboxes");
-    cc.innerHTML = friends.length === 0
-      ? '<div style="color:var(--text-sub);padding:12px;text-align:center;">暂无可邀请的好友</div>'
-      : friends.map(function(f) {
-          return '<label class="modal-check-item"><input type="checkbox" value="' + escapeHtml(f.username) + '" class="invite-member-check"> ' + escapeHtml(f.username) + '</label>';
-        }).join("");
-    $("inviteToGroupModal").classList.add("visible");
-  } catch(e) { alert("获取可邀请好友列表失败"); }
-}
-
-async function inviteToGroup() {
-  var sel = [];
-  document.querySelectorAll(".invite-member-check:checked").forEach(function(cb) { sel.push(cb.value); });
-  if (sel.length === 0) { alert("请至少选择一个好友"); return; }
-  var success = 0, fail = 0;
-  for (var i = 0; i < sel.length; i++) {
-    try {
-      var r = await GroupAPI.invite(currentChat.target_id, sel[i]);
-      if (r.code === 200) { success++; }
-      else { fail++; }
-    } catch(e) { fail++; }
-  }
-  alert("成功邀请 " + success + " 人" + (fail > 0 ? "，" + fail + " 人失败" : ""));
-  closeModal("inviteToGroupModal");
-  showGroupManagePanel();
-  loadGroups();
-}
+async function gpToggleJoinMode(checked){var mode=checked?1:0;var r=await GroupAPI.joinMode(currentChat.target_id,mode);if(r.code===200){groupListCache.forEach(function(g){if(g.group_id===currentChat.target_id)g.join_mode=mode;});}else{alert(r.detail||"设置失败");showGroupManagePanel();}}
+async function showInviteToGroupModal(){try{var r=await GroupAPI.invitableFriends(currentChat.target_id);var friends=r.data||[];var cc=$("inviteMemberCheckboxes");cc.innerHTML=friends.length===0?'<div style="color:var(--text-sub);padding:12px;text-align:center;">暂无可邀请的好友</div>':friends.map(function(f){return'<label class="modal-check-item"><input type="checkbox" value="'+escapeHtml(f.username)+'" class="invite-member-check"> '+escapeHtml(f.username)+'</label>';}).join("");$("inviteToGroupModal").classList.add("visible");}catch(e){alert("获取可邀请好友列表失败");}}
+async function inviteToGroup(){var sel=[];document.querySelectorAll(".invite-member-check:checked").forEach(function(cb){sel.push(cb.value);});if(sel.length===0){alert("请至少选择一个好友");return;}var success=0,fail=0;for(var i=0;i<sel.length;i++){try{var r=await GroupAPI.invite(currentChat.target_id,sel[i]);if(r.code===200){success++;}else{fail++;}}catch(e){fail++;}}alert("成功邀请 "+success+" 人"+(fail>0?"，"+fail+" 人失败":""));closeModal("inviteToGroupModal");showGroupManagePanel();loadGroups();}
 
 async function gpToggleGroupMute(muted) {
   await GroupAPI.muteSetting(currentChat.target_id, muted);
@@ -840,14 +755,11 @@ async function gpToggleGroupMute(muted) {
 }
 
 function gpClearLocalChat() {
-  if (!confirm("确定清空本地聊天记录？此操作不可恢复。")) return;
-  var k = convKey("group", currentChat.target_id);
-  var cleared = getChatCleared();
-  cleared[k] = new Date().toISOString();
-  setChatCleared(cleared);
-  $("messageList").innerHTML = ""; var em = $("messageEmpty"); if (em) em.style.display = "block";
-  convListCache.forEach(function(c){ if (c.type === "group" && c.target_id === currentChat.target_id) { c.last_msg = ""; c.last_time = ""; } });
-  renderConversations();
+  if (!confirm("确定清空本地聊天记录？此操作不可撤销。")) return;
+  $("messageList").innerHTML = '<div class="message-empty" id="messageEmpty"><div class="empty-icon">💬</div><div class="empty-text">聊天记录已清空</div></div>';
+  var k = convKey("group", currentChat.target_id), d = getDeleted();
+  if (d.indexOf(k) === -1) { d.push(k); setDeleted(d); }
+  loadConversations();
 }
 
 async function gpShowGroupAnnouncement() {
@@ -949,8 +861,22 @@ function closeModal(id){$(id).classList.remove("visible");}
 var wsConnected = false;
 function updateWsStatus(ok){
   wsConnected = ok;
-  var dot = document.getElementById("sidebarOnlineDot");
-  if (dot) { dot.style.background = ok ? "var(--green)" : "#ccc"; }
+  updateMyOnlineDot();
+}
+var myOnlineStatus = 1; // 1=在线 0=离线
+function updateMyOnlineDot(){
+  var dot = $("myOnlineDot");
+  if (!dot) return;
+  if (myOnlineStatus === 1 && wsConnected) { dot.className = "online-indicator online"; dot.title = "在线 · 点击切换为离线"; }
+  else { dot.className = "online-indicator"; dot.title = "离线 · 点击切换为在线"; }
+}
+async function toggleMyOnline(e){
+  e.stopPropagation();
+  myOnlineStatus = myOnlineStatus === 1 ? 0 : 1;
+  updateMyOnlineDot();
+  try {
+    await UserAPI.setOnlineStatus(myOnlineStatus);
+  } catch(e) {}
 }
 
 function escapeHtml(t){if(!t)return"";var d=document.createElement("div");d.textContent=t;return d.innerHTML;}

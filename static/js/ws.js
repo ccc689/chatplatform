@@ -19,12 +19,15 @@ var chatSocket = {
       console.log("[WS] 已连接");
       updateWsStatus(true);
       if (chatSocket._timer) { clearTimeout(chatSocket._timer); chatSocket._timer = null; }
+      // 上线注册：通知后端广播在线状态给所有好友
+      chatSocket._send({ type: "register", user_id: myUserId });
     };
     this.ws.onmessage = function(e) {
       try {
         var d = JSON.parse(e.data);
+        console.log('[前端收到WS]', d.type, d);
         if (chatSocket.onMsg) chatSocket.onMsg(d);
-      } catch (ex) { console.error("[WS] 解析失败", ex); }
+      } catch (ex) { console.error('[WS 解析错误] 收到的不是有效JSON:', e.data, ex); }
     };
     this.ws.onclose = function(ev) {
       console.log("[WS] 断开 code=" + ev.code + " reason=" + ev.reason);

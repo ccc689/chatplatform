@@ -1,4 +1,4 @@
-﻿from sqlalchemy import create_engine, Column, Integer, String, SmallInteger, Text, DateTime, BIGINT, ForeignKey, JSON
+from sqlalchemy import create_engine, Column, Integer, String, SmallInteger, Text, DateTime, BIGINT, ForeignKey, JSON
 from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
 from dotenv import load_dotenv

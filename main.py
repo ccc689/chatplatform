@@ -426,6 +426,34 @@ async def websocket_chat_endpoint(websocket: WebSocket):
                 finally:
                     db.close()
 
+            # ========== 用户上线注册（在线状态实时同步） ==========
+            elif msg_type == "register":
+                db3 = await asyncio.to_thread(get_sync_db)
+                try:
+                    # 查找该用户的所有在线好友，广播 online 状态
+                    records = db3.query(FriendRelation).filter(
+                        ((FriendRelation.user_id == uid) | (FriendRelation.friend_id == uid)),
+                        FriendRelation.status == 1
+                    ).all()
+                    friend_ids = set()
+                    for rel in records:
+                        fid = rel.friend_id if rel.user_id == uid else rel.user_id
+                        friend_ids.add(fid)
+                    online_friends = manager.get_online_users() & friend_ids
+                    # 更新自己的在线状态为 1
+                    me = db3.query(User).filter(User.id == uid).first()
+                    if me:
+                        me.online_status = 1
+                        db3.commit()
+                    push = {"type": "status_update", "user_id": uid, "online": True}
+                    logger.info(f"[WS register] uid={uid} 上线, 好友={list(friend_ids)}, 在线好友={list(online_friends)}, 广播: {push}")
+                    for fid in online_friends:
+                        await manager.send_personal_msg(fid, push)
+                except Exception as e:
+                    logger.error(f"[WS register] 失败: {e}")
+                finally:
+                    db3.close()
+
             # ========== 忽略未知消息类型（不报错） ==========
 
     except WebSocketDisconnect:

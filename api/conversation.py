@@ -13,6 +13,7 @@ from database.db import get_db, User, FriendRelation, ChatMessage, ChatGroup, Gr
 from database.models.friend import FriendRemark
 from utils.security import get_current_user_from_token
 from utils.logger import get_logger
+from utils.ws_manager import manager
 
 router = APIRouter(prefix="/conversation", tags=["会话列表"])
 logger = get_logger("conversation")
@@ -80,7 +81,8 @@ def get_conversation_list(token: str, db: Session = Depends(get_db)):
             "last_time_sort": last_msg.create_at.strftime("%Y%m%d%H%M%S") if last_msg and last_msg.create_at else "0",
             "unread": unread,
             "status_message": friend_status,
-            "online_status": friend.online_status
+            "online_status": friend.online_status if friend.online_status is not None else 1,
+            "is_ws_online": manager.is_online(fid)
         })
 
     # ========== 2. 群聊会话 ==========

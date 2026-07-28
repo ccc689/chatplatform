@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>数字方舟</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=6.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=5.0">
 </head>
 <body>
 <!-- ====== 会话右键菜单 ====== -->
@@ -84,14 +84,6 @@
   </div>
 </div>
 
-<!-- ====== 备注弹窗 ====== -->
-<div class="modal-overlay" id="remarkModal">
-  <div class="modal-box"><span class="modal-back-arrow" onclick="closeModal('remarkModal')">←</span>
-    <h3>设置备注</h3><input type="text" class="input-row" id="remarkInput" placeholder="输入备注名">
-    <div class="modal-footer"><button class="btn-confirm" onclick="saveRemark()">保存</button><button class="btn-cancel" onclick="closeModal('remarkModal')">取消</button></div>
-  </div>
-</div>
-
 <!-- ====== 添加好友弹窗 ====== -->
 <div class="modal-overlay" id="addFriendModal">
   <div class="modal-box"><span class="modal-back-arrow" onclick="closeModal('addFriendModal')">←</span>
@@ -127,8 +119,7 @@
     <div class="profile-field" id="nicknameField"><span class="profile-field-val" id="profileNickname">加载中</span><span class="profile-field-edit" onclick="editNickname()">✎</span></div>
     <div class="profile-field-edit-area" id="nicknameEditArea" style="display:none;"><input type="text" class="input-row" id="nicknameInput" maxlength="12" placeholder="昵称(2-12字)" onkeydown="if(event.key==='Enter')saveNickname()"><div style="display:flex;gap:6px;margin-top:6px;"><button class="btn-confirm" onclick="saveNickname()" style="padding:6px 18px;border-radius:6px;background:var(--wechat-green);color:#fff;border:none;cursor:pointer;font-size:13px;">确定</button><button class="btn-cancel" onclick="document.getElementById('nicknameEditArea').style.display='none'" style="padding:6px 18px;border-radius:6px;background:var(--bg-input);color:var(--text-secondary);border:none;cursor:pointer;font-size:13px;">取消</button></div></div>
     <div class="profile-status-row"><span class="profile-status-label">状态</span><span class="profile-status-val" id="profileStatus" onclick="editStatus()">未设置</span></div>
-    <div class="profile-field-edit-area" id="statusEditArea" style="display:none;"><input type="text" class="input-row" id="statusInput" maxlength="20" placeholder="输入个性状态(最多20字)" onblur="saveStatus()" onkeydown="if(event.key==='Enter')saveStatus()"></div>
-    <button class="btn-full light" onclick="showSettings()" style="margin-top:14px;">⚙ 设置</button>
+        <button class="btn-full light" onclick="showSettings()" style="margin-top:14px;">⚙ 设置</button>
   </div>
 </div>
 
@@ -288,12 +279,16 @@
 <div class="chat-layout">
   <div class="sidebar-left" id="sidebarLeft">
     <div class="sidebar-top">
-      <div class="sidebar-top-left">
-        <div class="user-avatar" id="myAvatar" onclick="showMyProfile()" style="cursor:pointer;"><img id="sidebarAvatarImg" src="" style="display:none;width:100%;height:100%;border-radius:50%;object-fit:cover;"><span id="sidebarAvatarFallback">😊</span><span class="online-dot" id="sidebarOnlineDot"></span></div>
-        <span class="user-name" id="myUsername">加载中</span>
-        <span id="onlineDot" class="online-dot-btn online" onclick="toggleOnlineStatus()" title="点击切换在线状态"></span>
-        <span class="self-status" id="myStatusDisplay" onclick="showStatusEditModal()" title="点击修改个性状态">未设置</span>
-      </div>
+      <div class="user-info" id="sidebarUserInfo">
+        <div class="user-avatar" id="myAvatar" onclick="showMyProfile()" style="cursor:pointer;" title="个人信息"><img id="sidebarAvatarImg" src="" style="display:none;width:100%;height:100%;border-radius:50%;object-fit:cover;"><span id="sidebarAvatarFallback">😊</span></div>
+        <div class="user-meta">
+          <div class="user-name-row">
+            <span class="user-name" id="myUsername" onclick="showMyProfile()" style="cursor:pointer;">加载中</span>
+            <span class="online-indicator" id="myOnlineDot" onclick="toggleMyOnline(event)" title="点击切换在线/离线状态"></span>
+          </div>
+          <span class="self-status" id="myStatusDisplay" onclick="showMyProfile()" style="cursor:pointer;" title="点击修改个性状态"></span>
+        </div>
+      </div><span class="logout-icon" id="logoutBtn" title="退出登录">⏻</span>
     </div>
     <div class="sidebar-search"><div class="search-box"><span class="search-icon-inside">🔍</span><input type="text" placeholder="搜索" id="convSearchInput" oninput="onSearchConversations()" onfocus="onSearchConversations()"></div><div class="search-dropdown" id="searchDropdown"></div></div>
     <div class="conversation-list" id="conversationList">
@@ -307,7 +302,7 @@
     <div class="chat-topbar"><div><div class="chat-target-name" id="chatTitle">欢迎</div><div class="chat-target-desc" id="chatSubtitle"></div></div>
       <div class="topbar-actions" id="topbarActions">
         <div class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</div>
-        <div class="plus-menu-wrapper" id="plusMenuWrapper"><button class="plus-btn" id="plusBtn">+</button><span class="plus-badge" id="plusBadge"></span><div class="plus-dropdown" id="plusDropdown"><div class="plus-dropdown-item" onclick="showAddFriendModal()"><span class="plus-dropdown-icon">👤</span><span>添加好友</span></div><div class="plus-dropdown-item" onclick="showCreateGroupModal()"><span class="plus-dropdown-icon">👥</span><span>发起群聊</span></div></div></div></div>
+        <div class="plus-menu-wrapper" id="plusMenuWrapper"><button class="plus-btn" id="plusBtn">+</button><span class="plus-badge" id="plusBadge"></span><div class="plus-dropdown" id="plusDropdown"><div class="plus-dropdown-item" onclick="showAddFriendModal()"><span class="plus-dropdown-icon">👤</span><span>添加好友</span></div><div class="plus-dropdown-item" onclick="showCreateGroupModal()"><span class="plus-dropdown-icon">👥</span><span>发起群聊</span></div><div class="plus-dropdown-item" onclick="showFriendRequests()"><span class="plus-dropdown-icon">👋</span><span>新朋友</span><span id="friendReqBadge" style="color:var(--unread);font-size:11px;margin-left:auto;"></span></div><div class="plus-dropdown-item" onclick="showGroupInvites()"><span class="plus-dropdown-icon">🔔</span><span>群通知</span><span id="groupInviteBadge" style="color:var(--unread);font-size:11px;margin-left:auto;"></span></div></div></div></div>
     </div>
     <div class="message-list" id="messageList"><div class="message-empty" id="messageEmpty"><div class="empty-icon">💬</div><div class="empty-text">选择左侧会话开始聊天</div><div class="empty-sub">好友消息、群聊消息都在这里<br>开启你的数字方舟之旅 ✨</div></div></div>
     <div class="chat-input-bar" id="chatInputBar" style="display:none;">
@@ -339,9 +334,9 @@
   </div>
 </div>
 
-<script src="/static/js/emoji.js"></script>
-<script src="/static/js/api.js"></script>
-<script src="/static/js/ws.js"></script>
-<script src="/static/js/ui.js"></script>
+<script src="/static/js/emoji.js?v=6.2"></script>
+<script src="/static/js/api.js?v=6.2"></script>
+<script src="/static/js/ws.js?v=6.2"></script>
+<script src="/static/js/ui.js?v=6.2"></script>
 </body>
 </html>
